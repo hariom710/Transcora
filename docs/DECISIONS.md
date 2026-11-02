@@ -26,7 +26,7 @@ New architectural changes are recorded here — never made silently. Decisions b
 - **Consequences:** Two services to deploy and configure; explicit CORS; a Python-compatible host is required. Enables `youtube-transcript-api` and Pytest reuse.
 - **Date:** November 2026 (specification).
 
-> **Open conflict to resolve:** an earlier working discussion proposed collapsing both services into a single Next.js app using the `youtube-transcript` npm package. This ADR still records FastAPI as specified. If the single-service approach is adopted, record a superseding ADR here rather than changing the architecture silently.
+> **Conflict resolved (November 2026):** an earlier working discussion proposed collapsing both services into a single Next.js app using the `youtube-transcript` npm package. The specification and [AGENTS.md](../AGENTS.md) §B both mandate the FastAPI backend, so this ADR stands as written and the single-service proposal is rejected. Built and verified as two services.
 
 ## ADR-003 — youtube-transcript-api for initial caption extraction
 

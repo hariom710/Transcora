@@ -13,15 +13,16 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Working scaffold for both services with tooling in place.
 **Depends on:** nothing.
 
-- `[ ]` Initialize Git repository and remote
-- `[ ]` Scaffold Next.js + TypeScript + Tailwind frontend
-  - `[ ]` App Router, strict TS, lint, format
-  - `[ ]` shadcn/ui installed and configured
-- `[ ]` Scaffold FastAPI backend
-  - `[ ]` `app/` structure per [ARCHITECTURE.md](ARCHITECTURE.md) §C
-  - `[ ]` Pydantic Settings, `.env.example`
-- `[ ]` Test harness: Pytest + Playwright configured
-- `[ ]` `GET /health` returns 200
+- `[x]` Initialize Git repository and remote
+- `[x]` Scaffold Next.js + TypeScript + Tailwind frontend
+  - `[x]` App Router, strict TS, lint
+  - `[ ]` format — no formatter configured yet
+  - `[~]` shadcn/ui — not installed; local `cva` components (`ui/button`, `ui/input`, `ui/badge`) plus native controls per [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) §G cover the primitives used
+- `[x]` Scaffold FastAPI backend
+  - `[x]` `app/` structure per [ARCHITECTURE.md](ARCHITECTURE.md) §C
+  - `[x]` Pydantic Settings, `.env.example`
+- `[~]` Test harness: Pytest configured and green (37 tests); Playwright not installed — E2E so far done manually in a browser
+- `[x]` `GET /health` returns 200 (verified live and covered by a test)
 
 **Deliverables:** two runnable services, `npm run dev` and `uvicorn app.main:app`.
 **Acceptance criteria:** both services start locally; health check passes.
@@ -34,11 +35,11 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Reliable, safe URL → video ID conversion.
 **Depends on:** Phase 1.
 
-- `[ ]` `utils/url_parser.py` with domain allowlist
-- `[ ]` Support `watch?v=`, `youtu.be/`, `/embed/`, `/shorts/`
-- `[ ]` Strict video ID format validation
-- `[ ]` Reject non-YouTube and malformed URLs
-- `[ ]` Frontend client-side validation mirroring backend rules
+- `[x]` `utils/url_parser.py` with domain allowlist
+- `[x]` Support `watch?v=`, `youtu.be/`, `/embed/`, `/shorts/`
+- `[x]` Strict video ID format validation
+- `[x]` Reject non-YouTube and malformed URLs
+- `[x]` Frontend client-side validation mirroring backend rules (`src/lib/url.ts`)
 
 **Deliverables:** `parse_video_id()`, client-side twin, error messages.
 **Acceptance criteria:** all four URL forms extract the correct ID; everything else rejected.
@@ -52,18 +53,19 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Fetch and normalize captions reliably.
 **Depends on:** Phase 2.
 
-- `[ ]` `providers/base.py` interface
-- `[ ]` `youtube_provider.py` using youtube-transcript-api
-  - `[ ]` manual and automatic caption tracks
-  - `[ ]` translate-track support when offered
-- `[ ]` Normalizer → common `Transcript` shape
-- `[ ]` Timestamp conversion (provider format → seconds)
-- `[ ]` Error taxonomy: no captions, private, restricted, blocked, timeout
-- `[ ]` Timeouts and concurrency limits
+- `[x]` `providers/base.py` interface
+- `[x]` `youtube_provider.py` using youtube-transcript-api
+  - `[x]` manual and automatic caption tracks
+  - `[x]` translate-track support when offered
+- `[x]` Normalizer → common `Transcript` shape
+- `[x]` Timestamp conversion — provider already returns seconds; no conversion module needed (no caller)
+- `[x]` Error taxonomy: no captions, private, restricted, blocked, timeout
+- `[x]` Timeouts and concurrency limits (`services/runner.py`, threadpool + `asyncio.wait_for`)
 
 **Deliverables:** extraction service returning normalized segments.
 **Acceptance criteria:** a caption-bearing video yields timestamped segments; caption-less video returns a clear error.
 **Testing requirements:** [TESTING.md](TESTING.md) §J, §L, §M — against mocked responses.
+**Verified live:** 61 segments from a real video, 5 languages listed, `CAPTIONS_UNAVAILABLE` for an unsupported language.
 
 ---
 
@@ -72,11 +74,11 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Preview data and language choice.
 **Depends on:** Phase 3.
 
-- `[ ]` Metadata retrieval (title, channel, thumbnail, duration) with graceful failure
-- `[ ]` `GET /api/v1/videos/{id}/languages`
-- `[ ]` Language detection and default selection
-- `[ ]` Video preview component
-- `[ ]` Language selector bound to workspace
+- `[x]` Metadata retrieval (title, channel, thumbnail) with graceful failure — duration stays unset: oEmbed does not expose it and the YouTube Data API would need a key (out of Version 1 scope)
+- `[x]` `GET /api/v1/videos/{id}/languages`
+- `[x]` Language detection and default selection
+- `[x]` Video preview component
+- `[x]` Language selector bound to workspace (verified live: switching to German refetched 60 segments)
 
 **Deliverables:** inspect + languages endpoints, preview UI.
 **Acceptance criteria:** metadata renders when available; unavailable metadata never blocks transcript extraction.
@@ -89,13 +91,13 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Stable versioned API contract.
 **Depends on:** Phases 2–4.
 
-- `[ ]` `POST /api/v1/videos/inspect`
-- `[ ]` `POST /api/v1/transcripts`
-- `[ ]` Pydantic request/response schemas
-- `[ ]` Unified error response shape
-- `[ ]` CORS restricted to explicit frontend origin
-- `[ ]` Rate limiting, request size limits
-- `[ ]` Frontend API client + shared types
+- `[x]` `POST /api/v1/videos/inspect`
+- `[x]` `POST /api/v1/transcripts`
+- `[x]` Pydantic request/response schemas
+- `[x]` Unified error response shape (`{"error": {"code", "message"}}`)
+- `[x]` CORS restricted to explicit frontend origin
+- `[x]` Rate limiting, request size limits
+- `[x]` Frontend API client + shared types (`src/services/api.ts`, `src/types/`)
 
 **Deliverables:** versioned endpoints, typed client.
 **Acceptance criteria:** valid request returns normalized transcript; invalid input returns structured 4xx.
@@ -108,13 +110,13 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Usable, responsive transcript viewer.
 **Depends on:** Phase 5.
 
-- `[ ]` Homepage: hero, URL form, how-it-works, footer
-- `[ ]` Loading, empty and error states
-- `[ ]` Transcript workspace: timestamped segment list
-- `[ ]` Clickable timestamps → video position
-- `[ ]` Light and dark themes
-- `[ ]` Responsive layout (mobile/tablet/desktop)
-- `[ ]` Accessibility pass: keyboard, focus, contrast, ARIA
+- `[x]` Homepage: hero, URL form, how-it-works, footer
+- `[x]` Loading, empty and error states (verified live for invalid URL and upstream `VIDEO_NOT_FOUND`)
+- `[x]` Transcript workspace: timestamped segment list
+- `[x]` Clickable timestamps → video position
+- `[x]` Light and dark themes (verified live: class toggle + `localStorage` persistence)
+- `[~]` Responsive layout — breakpoints implemented, not yet visually verified on a mobile viewport
+- `[~]` Accessibility pass — labels, focus-visible, ARIA live regions and reduced-motion in place; full keyboard/contrast audit not run
 
 **Deliverables:** complete viewer per [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) §H–§J.
 **Acceptance criteria:** paste URL → readable timestamped transcript on mobile and desktop.
@@ -127,14 +129,14 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Search, edit and manipulate transcript in-browser.
 **Depends on:** Phase 6.
 
-- `[ ]` Client-side search with highlighted matches
-- `[ ]` Prev/next match navigation
-- `[ ]` Text editing of segments
-- `[ ]` Whitespace/format normalization
-- `[ ]` Copy all / copy segment / select all
-- `[ ]` Character, word and segment counts
-- `[ ]` Auto-scroll to active segment
-- `[ ]` Optional local recent-history (opt-in only)
+- `[x]` Client-side search with highlighted matches (verified live: 38 matching segments, 40 highlights)
+- `[x]` Prev/next match navigation
+- `[x]` Text editing of segments
+- `[x]` Whitespace/format normalization (backend side, `transcript_service._clean`)
+- `[x]` Copy all / copy segment / select all
+- `[x]` Character, word and segment counts
+- `[x]` Auto-scroll to active segment
+- `[ ]` Optional local recent-history — deferred: optional, privacy-first; not implemented until requested
 
 **Deliverables:** search and editing controls in the workspace.
 **Acceptance criteria:** searching finds and highlights matches; edits persist in session state.
@@ -147,15 +149,16 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Export without an account.
 **Depends on:** Phase 7.
 
-- `[ ]` `toTxt`, `toSrt`, `toVtt`, `toMarkdown`, `toPdf`
-- `[ ]` Preserve original timestamps
-- `[ ]` Reflect user edits in output files
-- `[ ]` Copy-to-clipboard
-- `[ ]` Export button group with disabled states
+- `[x]` `toTxt`, `toSrt`, `toVtt`, `toMarkdown`, `toPdf`
+- `[x]` Preserve original timestamps
+- `[x]` Reflect user edits in output files
+- `[x]` Copy-to-clipboard
+- `[x]` Export button group with disabled states
 
 **Deliverables:** five exporters + clipboard.
 **Acceptance criteria:** SRT/VTT output validates against their formats; TXT/MD are clean; PDF is readable.
 **Testing requirements:** [TESTING.md](TESTING.md) §N.
+**Verified live:** SRT download — 61 cues ↔ 61 arrows, UTF-8 intact, comma decimals only; PDF download — `%PDF-1.3`, 2 pages, `%%EOF` present.
 
 ---
 
@@ -164,11 +167,12 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Verified, hardened, fast.
 **Depends on:** Phases 1–8.
 
-- `[ ]` Full backend unit + integration suites green
-- `[ ]` Playwright E2E happy path and error paths green
-- `[ ]` Security checklist signed off ([SECURITY.md](SECURITY.md) §L)
-- `[ ]` SSRF and URL-allowlist tests
-- `[ ]` Rate-limit and timeout verification
+- `[x]` Backend unit + integration suites green (37 pytest tests)
+- `[x]` Frontend unit suites green (48 vitest tests); `eslint` and `tsc --noEmit` clean; `next build` succeeds
+- `[ ]` Playwright E2E happy path and error paths — not installed; equivalent flows verified manually in a browser (submit → transcript → search → SRT/PDF download → theme toggle → error paths → language switch)
+- `[~]` Security checklist signed off ([SECURITY.md](SECURITY.md) §L) — SSRF, CORS, rate limit and body-size limits covered by tests; full §L review not run
+- `[x]` SSRF and URL-allowlist tests
+- `[~]` Rate-limit verified by test; upstream timeout path not yet exercised
 - `[ ]` Large-transcript profiling; virtualize if needed
 - `[ ]` Dependency audit
 

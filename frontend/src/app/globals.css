@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Semantic tokens — DESIGN_SYSTEM.md §C. Light is the default. */
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --surface: #f8fafc;
+  --muted: #f1f5f9;
+  --muted-fg: #64748b;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-fg: #ffffff;
+  --secondary: #0f172a;
+  --accent: #7c3aed;
+  --success: #16a34a;
+  --warning: #d97706;
+  --error: #dc2626;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #0b1220;
+  --foreground: #e6edf7;
+  --surface: #111a2e;
+  --muted: #1a2439;
+  --muted-fg: #94a3b8;
+  --border: #24304a;
+  --primary: #3b82f6;
+  --primary-fg: #ffffff;
+  --secondary: #e6edf7;
+  --accent: #a78bfa;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
