@@ -1,0 +1,26 @@
+# secrets — required by SECURITY.md §J
+.env
+.env.*
+!.env.example
+
+# dependencies / build
+node_modules/
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# test / tooling
+.pytest_cache/
+coverage/
+playwright-report/
+test-results/
+
+# editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
