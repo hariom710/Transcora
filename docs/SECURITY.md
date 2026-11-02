@@ -1,6 +1,6 @@
 # SECURITY.md — Security Requirements
 
-Mandatory security requirements. Rules: [AGENTS.md](AGENTS.md) · Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · Tests: [TESTING.md](TESTING.md) §Q.
+Mandatory security requirements. Rules: [AGENTS.md](../AGENTS.md) · Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · Tests: [TESTING.md](TESTING.md) §Q.
 
 > **Status: Proposed — nothing is implemented yet.** This is the specification the code must satisfy. The verification checklist in §L is signed off only after the checks actually run.
 
@@ -73,7 +73,7 @@ Mandatory security requirements. Rules: [AGENTS.md](AGENTS.md) · Architecture: 
 
 ## I. Dependency security
 
-- Keep dependencies minimal ([AGENTS.md](AGENTS.md) §C) — every package is attack surface.
+- Keep dependencies minimal ([AGENTS.md](../AGENTS.md) §C) — every package is attack surface.
 - Pin versions in lockfiles; review new dependencies before adding.
 - Run an audit before release (`npm audit`, `pip-audit` or equivalent) and act on high-severity findings.
 - Remove unused dependencies rather than leaving them dormant.

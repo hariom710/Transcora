@@ -2,7 +2,7 @@
 
 Governing rules for every AI coding agent working on this repository.
 
-Hierarchy when instructions conflict: **security → [DECISIONS.md](DECISIONS.md) → [ARCHITECTURE.md](ARCHITECTURE.md) → [PROJECT.md](PROJECT.md) → [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)**.
+Hierarchy when instructions conflict: **security → [DECISIONS.md](docs/DECISIONS.md) → [ARCHITECTURE.md](docs/ARCHITECTURE.md) → [PROJECT.md](docs/PROJECT.md) → [DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)**.
 
 Read only the documents relevant to the current task. Never load all seven by default.
 
@@ -15,7 +15,7 @@ Read only the documents relevant to the current task. Never load all seven by de
 - No mandatory registration, subscription or payment.
 - No database and no authentication in Version 1.
 - Privacy-conscious, minimal dependencies, minimal resource use.
-- Full product definition: [PROJECT.md](PROJECT.md).
+- Full product definition: [PROJECT.md](docs/PROJECT.md).
 
 ## B. Stack and architectural boundaries
 
@@ -30,7 +30,7 @@ Read only the documents relevant to the current task. Never load all seven by de
 
 Boundaries:
 
-- Backend never fetches arbitrary user-supplied URLs. See [SECURITY.md](SECURITY.md).
+- Backend never fetches arbitrary user-supplied URLs. See [SECURITY.md](docs/SECURITY.md).
 - Transcript search, editing and export run client-side where practical.
 - No AI code before Phase 10. No speculative features, ever.
 - The transcript engine **extracts existing captions**; it does not transcribe audio.
@@ -77,7 +77,7 @@ Do not invent Ponytail commands, levels or configuration options. Inspect existi
 3. Check for an existing implementation.
 4. Identify the minimum change.
 5. Implement.
-6. Run the relevant tests ([TESTING.md](TESTING.md)).
+6. Run the relevant tests ([TESTING.md](docs/TESTING.md)).
 7. Review the diff.
 8. Report results — never claim a test passed without running it.
 
@@ -87,6 +87,6 @@ Never implement future features prematurely. Version 2 AI work is out of scope u
 
 ## H. Project governance
 
-Follow [PROJECT.md](PROJECT.md), [ARCHITECTURE.md](ARCHITECTURE.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [TASKS.md](TASKS.md), [TESTING.md](TESTING.md), [DECISIONS.md](DECISIONS.md) and [SECURITY.md](SECURITY.md).
+Follow [PROJECT.md](docs/PROJECT.md), [ARCHITECTURE.md](docs/ARCHITECTURE.md), [DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md), [TASKS.md](docs/TASKS.md), [TESTING.md](docs/TESTING.md), [DECISIONS.md](docs/DECISIONS.md) and [SECURITY.md](docs/SECURITY.md).
 
-When a task is completed, update [TASKS.md](TASKS.md) with its actual status.
+When a task is completed, update [TASKS.md](docs/TASKS.md) with its actual status.

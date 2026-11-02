@@ -1,6 +1,6 @@
 # TESTING.md — Testing and Verification
 
-How correctness is proven. Progress: [TASKS.md](TASKS.md). Rules: [AGENTS.md](AGENTS.md) §F.
+How correctness is proven. Progress: [TASKS.md](TASKS.md). Rules: [AGENTS.md](../AGENTS.md) §F.
 
 > **No test has been executed in this repository yet.** There is no application source code, no test configuration and no CI. Commands below are the target setup and are marked accordingly — they will only work once Phase 1 scaffolding exists. **Never record a result here that was not actually observed.**
 

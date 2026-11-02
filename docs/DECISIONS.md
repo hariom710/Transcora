@@ -1,6 +1,6 @@
 # DECISIONS.md — Architecture Decision Records
 
-Authoritative record of **why** technical choices were made. Structure: [ARCHITECTURE.md](ARCHITECTURE.md). Rules: [AGENTS.md](AGENTS.md).
+Authoritative record of **why** technical choices were made. Structure: [ARCHITECTURE.md](ARCHITECTURE.md). Rules: [AGENTS.md](../AGENTS.md).
 
 **Status values:** `Accepted` · `Proposed` · `Superseded`.
 
@@ -79,7 +79,7 @@ New architectural changes are recorded here — never made silently. Decisions b
 - **Context:** AI features are valuable but must not delay a reliable core product.
 - **Decision:** Ship transcript extraction first; add Gemini features as Phase 10 only after Phases 1–9 are complete and verified.
 - **Alternatives considered:** building both simultaneously (risks an unreliable core); a different AI provider (revisit if free-tier terms change).
-- **Consequences:** No AI code exists or should exist before Phase 10. Scope creep here is a governance violation — see [AGENTS.md](AGENTS.md) §G.
+- **Consequences:** No AI code exists or should exist before Phase 10. Scope creep here is a governance violation — see [AGENTS.md](../AGENTS.md) §G.
 - **Date:** November 2026 (specification).
 
 ## ADR-009 — Optional user-provided Gemini API key

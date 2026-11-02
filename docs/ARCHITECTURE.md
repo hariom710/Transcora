@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — System Architecture
 
-Authoritative source for **how the system is structured**. Requirements: [PROJECT.md](PROJECT.md). Decisions: [DECISIONS.md](DECISIONS.md). Rules: [AGENTS.md](AGENTS.md).
+Authoritative source for **how the system is structured**. Requirements: [PROJECT.md](PROJECT.md). Decisions: [DECISIONS.md](DECISIONS.md). Rules: [AGENTS.md](../AGENTS.md).
 
 > **Status legend** — **Confirmed:** implemented and verified in this repository. **Proposed:** designed but not yet implemented.
 >
