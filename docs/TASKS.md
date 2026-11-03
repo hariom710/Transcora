@@ -110,13 +110,14 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Usable, responsive transcript viewer.
 **Depends on:** Phase 5.
 
-- `[x]` Homepage: hero, URL form, how-it-works, footer
+- `[x]` Homepage: 10 sections per [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) §H — sticky nav, hero, URL form, product preview, features, how-it-works, exports, FAQ, closing CTA, footer
+- `[x]` Apple-inspired UI redesign — CSS-only interactions (150–200ms), no animation dependencies, pill buttons, `.card` surfaces, export dropdown, toast feedback
 - `[x]` Loading, empty and error states (verified live for invalid URL and upstream `VIDEO_NOT_FOUND`)
 - `[x]` Transcript workspace: timestamped segment list
 - `[x]` Clickable timestamps → video position
 - `[x]` Light and dark themes (verified live: class toggle + `localStorage` persistence)
-- `[~]` Responsive layout — breakpoints implemented, not yet visually verified on a mobile viewport
-- `[~]` Accessibility pass — labels, focus-visible, ARIA live regions and reduced-motion in place; full keyboard/contrast audit not run
+- `[x]` Responsive layout — verified live at 375px (no horizontal overflow, 44px touch targets, single column), 786px (stacked toolbar, full-width search) and desktop (side-by-side toolbar)
+- `[x]` Accessibility pass — Lighthouse a11y/best-practices/SEO 100 in both themes after fixing two contrast defects (white-on-`#0a84ff` buttons → `#0071e3`; secondary text `#86868b` → `#6e6e73`); labels, focus-visible, ARIA live regions and reduced-motion in place. Screen-reader pass not run.
 
 **Deliverables:** complete viewer per [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) §H–§J.
 **Acceptance criteria:** paste URL → readable timestamped transcript on mobile and desktop.
@@ -153,7 +154,7 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 - `[x]` Preserve original timestamps
 - `[x]` Reflect user edits in output files
 - `[x]` Copy-to-clipboard
-- `[x]` Export button group with disabled states
+- `[x]` Export dropdown menu (TXT · SRT · VTT · MD · PDF · Copy · Select all), keyboard accessible (Escape/outside click), with toast confirmation
 
 **Deliverables:** five exporters + clipboard.
 **Acceptance criteria:** SRT/VTT output validates against their formats; TXT/MD are clean; PDF is readable.

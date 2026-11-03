@@ -9,7 +9,12 @@ import { parseVideoId } from "@/lib/url";
 
 const INVALID_MESSAGE = "That doesn't look like a supported YouTube video URL.";
 
-export function UrlForm() {
+interface UrlFormProps {
+  /** Unique field id — the homepage renders a second form in the closing CTA. */
+  id?: string;
+}
+
+export function UrlForm({ id = "youtube-url" }: UrlFormProps) {
   const router = useRouter();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +32,12 @@ export function UrlForm() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full" noValidate>
-      <label htmlFor="youtube-url" className="mb-2 block text-sm font-medium">
+      <label htmlFor={id} className="mb-2 block text-caption font-medium">
         YouTube video URL
       </label>
       <div className="flex flex-col gap-3 sm:flex-row">
         <Input
-          id="youtube-url"
+          id={id}
           type="text"
           inputMode="url"
           autoComplete="url"
@@ -43,18 +48,18 @@ export function UrlForm() {
             if (error) setError(null);
           }}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? "youtube-url-error" : "youtube-url-hint"}
-          className="h-11 flex-1"
+          aria-describedby={error ? `${id}-error` : `${id}-hint`}
+          className="h-11 sm:flex-1"
         />
-        <Button type="submit" size="lg" className="h-11">
+        <Button type="submit" size="lg">
           Generate Transcript
         </Button>
       </div>
-      <p id="youtube-url-hint" className="mt-2 text-sm text-muted-fg">
+      <p id={`${id}-hint`} className="mt-2 text-caption text-muted-fg">
         No account required · Free exports
       </p>
       {error && (
-        <p id="youtube-url-error" role="alert" className="mt-2 text-sm text-error">
+        <p id={`${id}-error`} role="alert" className="mt-2 text-caption text-error">
           {error}
         </p>
       )}

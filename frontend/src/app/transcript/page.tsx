@@ -143,9 +143,12 @@ function Workspace() {
   if (!videoId) {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p role="alert" className="text-error">
-          That doesn&apos;t look like a supported YouTube video URL.
-        </p>
+        <div className="card max-w-xl p-5" role="alert">
+          <h1 className="text-body font-semibold">Transcript unavailable</h1>
+          <p className="mt-1 text-body-sm text-muted-fg">
+            That doesn&apos;t look like a supported YouTube video URL.
+          </p>
+        </div>
         <Button variant="secondary" onClick={() => window.history.back()}>
           Go back
         </Button>
@@ -155,12 +158,12 @@ function Workspace() {
 
   if (phase === "loading") {
     return (
-      <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
-        <div className="h-24 w-full animate-pulse rounded-md bg-muted" />
-        <p className="text-sm text-muted-fg">Fetching transcript…</p>
-        <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-5" aria-busy="true" aria-live="polite">
+        <div className="card h-24 w-full animate-pulse" />
+        <p className="text-body-sm text-muted-fg">Fetching transcript…</p>
+        <div className="card flex flex-col gap-4 p-5">
           {[0, 1, 2, 3].map((row) => (
-            <div key={row} className="h-6 w-full animate-pulse rounded bg-muted" />
+            <div key={row} className="h-5 w-full animate-pulse rounded-sm bg-muted" />
           ))}
         </div>
       </div>
@@ -170,10 +173,10 @@ function Workspace() {
   if (phase === "error" || !current) {
     return (
       <div className="flex flex-col items-start gap-4">
-        <div className="rounded-md border border-border bg-surface p-4">
-          <h2 className="font-semibold">Transcript unavailable</h2>
-          <p className="mt-1 text-sm text-muted-fg">{error || "No transcript was returned."}</p>
-          <p className="mt-2 text-sm text-muted-fg">
+        <div className="card max-w-xl p-5">
+          <h1 className="text-body font-semibold">Transcript unavailable</h1>
+          <p className="mt-1 text-body-sm text-muted-fg">{error || "No transcript was returned."}</p>
+          <p className="mt-2 text-body-sm text-muted-fg">
             This tool extracts captions that already exist — it does not transcribe audio.
           </p>
         </div>
@@ -185,18 +188,30 @@ function Workspace() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <VideoPreview video={video} />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-semibold">Transcript</h1>
-        <Badge>{current.is_generated ? "Auto-generated" : "Manual captions"}</Badge>
-        <label className="flex items-center gap-2 text-sm text-muted-fg">
+      {/* Toolbar: title, caption type, search and language in one surface.
+          Stacked below lg so the search field keeps a usable width on tablets. */}
+      <div className="card flex flex-col gap-3 p-3 lg:flex-row lg:items-center">
+        <div className="flex flex-wrap items-center gap-3 lg:shrink-0">
+          <h1 className="text-body font-semibold">Transcript</h1>
+          <Badge>{current.is_generated ? "Auto-generated" : "Manual captions"}</Badge>
+        </div>
+        <TranscriptSearch
+          query={query}
+          onQueryChange={handleQueryChange}
+          matchCount={matches.length}
+          activeMatch={matches.length ? safeIndex + 1 : 0}
+          onPrevious={() => setActiveMatch((value) => value - 1)}
+          onNext={() => setActiveMatch((value) => value + 1)}
+        />
+        <label className="flex shrink-0 items-center gap-2 text-caption text-muted-fg">
           Language
           <select
             value={language}
             onChange={(event) => setLanguage(event.target.value)}
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+            className="h-11 rounded-md border border-border bg-background px-2 text-caption text-foreground sm:h-9"
           >
             <option value="">Default</option>
             {languages.map((item) => (
@@ -208,19 +223,8 @@ function Workspace() {
         </label>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <TranscriptSearch
-          query={query}
-          onQueryChange={handleQueryChange}
-          matchCount={matches.length}
-          activeMatch={matches.length ? safeIndex + 1 : 0}
-          onPrevious={() => setActiveMatch((value) => value - 1)}
-          onNext={() => setActiveMatch((value) => value + 1)}
-        />
-      </div>
-
       {current.segments.length === 0 ? (
-        <p className="rounded-md border border-border bg-surface p-4 text-sm text-muted-fg">
+        <p className="card p-5 text-body-sm text-muted-fg">
           This video has no caption text available.
         </p>
       ) : (
@@ -233,14 +237,14 @@ function Workspace() {
         />
       )}
 
-      <div className="flex flex-col gap-3 border-t border-border pt-4">
-        <TranscriptExport transcript={current} title={video?.title} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {stats && (
-          <p className="text-xs text-muted-fg" aria-live="polite">
+          <p className="text-caption text-muted-fg" aria-live="polite">
             {stats.segments} segments · {stats.words} words · {stats.characters} characters ·{" "}
             {current.language}
           </p>
         )}
+        <TranscriptExport transcript={current} title={video?.title} />
       </div>
     </div>
   );

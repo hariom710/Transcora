@@ -23,21 +23,23 @@ export function TranscriptSearch({
   const hasQuery = query.length > 0;
 
   return (
-    <div className="flex flex-1 items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2 lg:flex-1">
       <Input
         type="search"
         placeholder="Search transcript..."
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
         aria-label="Search transcript"
-        className="h-9"
+        className="h-11 min-w-0 flex-1 sm:h-9"
       />
-      <span
-        className="min-w-16 text-right text-sm tabular-nums text-muted-fg"
-        aria-live="polite"
-      >
-        {hasQuery ? `${activeMatch}/${matchCount}` : ""}
-      </span>
+      {hasQuery && (
+        <span
+          className="min-w-16 text-right font-mono text-caption tabular-nums text-muted-fg"
+          aria-live="polite"
+        >
+          {`${activeMatch}/${matchCount}`}
+        </span>
+      )}
       <Button
         variant="secondary"
         size="sm"

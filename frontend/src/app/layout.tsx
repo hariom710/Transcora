@@ -22,15 +22,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="flex min-h-screen flex-col font-sans">
         <Header />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:py-12">{children}</main>
         <footer className="border-t border-border">
-          <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-sm text-muted-fg sm:flex-row sm:items-center sm:justify-between">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-8 text-caption text-muted-fg sm:flex-row sm:items-center sm:justify-between">
             <p>Transcora — extracts available YouTube captions. Does not transcribe audio.</p>
-            <p>
-              <a href="/privacy" className="hover:text-foreground">
+            <nav aria-label="Footer" className="flex gap-5">
+              <a href="/about" className="transition-colors duration-150 hover:text-foreground">
+                About
+              </a>
+              <a href="/privacy" className="transition-colors duration-150 hover:text-foreground">
                 Privacy
               </a>
-            </p>
+            </nav>
           </div>
         </footer>
       </body>

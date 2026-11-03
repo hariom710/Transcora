@@ -55,7 +55,7 @@ export function TranscriptViewer({
   }
 
   return (
-    <div id="transcript-content" ref={containerRef} className="divide-y divide-border">
+    <div id="transcript-content" ref={containerRef} className="card divide-y divide-border">
       {segments.map((segment) => {
         const editing = editingId === segment.id;
         const parts = highlightParts(segment.text, query);
@@ -64,13 +64,13 @@ export function TranscriptViewer({
           <article
             key={segment.id}
             data-segment={segment.id}
-            className="group relative flex gap-3 px-2 py-2.5 transition-colors hover:bg-muted/60"
+            className="group relative flex gap-3 px-4 py-3 transition-colors duration-150 hover:bg-background/60 sm:px-5"
           >
             <a
               href={`https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(segment.start)}s`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-14 shrink-0 pt-0.5 font-mono text-xs tabular-nums text-muted-fg hover:text-primary"
+              className="w-14 shrink-0 pt-0.5 font-mono text-caption tabular-nums text-muted-fg transition-colors duration-150 hover:text-primary"
               title="Open video at this timestamp"
             >
               {formatClock(segment.start)}
@@ -86,18 +86,18 @@ export function TranscriptViewer({
                   rows={Math.min(6, Math.ceil(draft.length / 60))}
                   autoFocus
                   aria-label="Edit transcript segment"
-                  className="w-full resize-y rounded-md border border-border bg-background p-2 font-mono text-sm"
+                  className="w-full resize-y rounded-md border border-border bg-background p-2 font-mono text-body-sm"
                 />
               ) : (
                 <p
                   onDoubleClick={() => startEdit(segment)}
-                  className="whitespace-pre-wrap text-sm leading-6"
+                  className="whitespace-pre-wrap text-body-sm"
                 >
                   {parts.map((part, index) =>
                     part.hit ? (
                       <mark
                         key={index}
-                        className="rounded-sm bg-accent/25 px-0.5 text-inherit"
+                        className="rounded-sm bg-accent/20 px-0.5 text-inherit"
                       >
                         {part.text}
                       </mark>
@@ -109,12 +109,12 @@ export function TranscriptViewer({
               )}
             </div>
 
-            <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            <div className="flex shrink-0 gap-1 opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
               <button
                 type="button"
                 onClick={() => navigator.clipboard?.writeText(segment.text)}
                 aria-label={`Copy segment ${segment.id}`}
-                className="rounded-md p-1.5 text-muted-fg hover:bg-muted hover:text-foreground"
+                className="h-11 w-11 rounded-md text-muted-fg hover:bg-surface hover:text-foreground sm:h-auto sm:w-auto sm:p-1.5"
               >
                 <CopyIcon />
               </button>
@@ -122,7 +122,7 @@ export function TranscriptViewer({
                 type="button"
                 onClick={() => startEdit(segment)}
                 aria-label={`Edit segment ${segment.id}`}
-                className="rounded-md p-1.5 text-muted-fg hover:bg-muted hover:text-foreground"
+                className="h-11 w-11 rounded-md text-muted-fg hover:bg-surface hover:text-foreground sm:h-auto sm:w-auto sm:p-1.5"
               >
                 <EditIcon />
               </button>
