@@ -1,5 +1,7 @@
 "use client";
 
+import type { RefObject } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -10,6 +12,8 @@ interface TranscriptSearchProps {
   activeMatch: number;
   onPrevious: () => void;
   onNext: () => void;
+  /** Lets the page focus the field from the "/" keyboard shortcut. */
+  inputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export function TranscriptSearch({
@@ -19,12 +23,14 @@ export function TranscriptSearch({
   activeMatch,
   onPrevious,
   onNext,
+  inputRef,
 }: TranscriptSearchProps) {
   const hasQuery = query.length > 0;
 
   return (
     <div className="flex min-w-0 items-center gap-2 lg:flex-1">
       <Input
+        ref={inputRef}
         type="search"
         placeholder="Search transcript..."
         value={query}

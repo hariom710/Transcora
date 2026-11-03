@@ -222,20 +222,23 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 
 ## Version 2 tranches — approved 2026-11-03
 
-Owner-approved delivery plan: six tranches, T1 → T6, with a review checkpoint after each. T4 reuses **Phase 10** and T6 reuses **Phase 11** above — those sections stay authoritative for AI and deployment. Governance: [ADR-011](DECISIONS.md), [ADR-012](DECISIONS.md).
+Owner-approved delivery plan: six tranches, T1 → T6. Protocol revised by owner 2026-11-03: commit + push after each tranche, no review pause between tranches. T4 reuses **Phase 10** and T6 reuses **Phase 11** above — those sections stay authoritative for AI and deployment. Governance: [ADR-011](DECISIONS.md), [ADR-012](DECISIONS.md).
 
 - `[x]` **T0 — Governance (2026-11-03)**
   - `[x]` ADR-011 — database scoped exclusively to shareable transcripts and their lifecycle; ADR-004 marked Superseded; ADR-005 (no accounts) and ADR-009 (browser-side Gemini keys) explicitly preserved
   - `[x]` ADR-012 — playlist/batch accepted with recorded feasibility research (spike required before playlist ships) and binding security constraints
   - `[x]` PROJECT.md §F/§J/§K, ARCHITECTURE.md (§A/§C/§E/§J/§N, statuses), SECURITY.md (§A/§G/§L/§M + new §N–§O), TESTING.md (statuses + new §U–§V), TASKS.md and AGENTS.md updated consistently; DESIGN_SYSTEM.md reviewed — no change needed
-- `[ ]` **T1 — Workspace v2**: embedded player, follow-playback sync + auto-scroll, duration via player API, copy with/without timestamps, font-size controls, resizable/fullscreen layout, keyboard shortcuts
+- `[x]` **T1 — Workspace v2 (2026-11-03)**
+  - `[x]` Embedded YouTube IFrame player (script-loaded `iframe_api`, no new dependency): seek from timestamps, duration via `getDuration()`, play/pause and error fallback to the metadata card
+  - `[x]` Follow-playback highlight + auto-scroll (`findActiveSegment` binary search in `lib/playback.ts`, reduced-motion aware, scrolls only when off-screen); copy with/without timestamps; A−/A+ font size persisted via localStorage; resizable two-pane (≥1024px, pointer + arrow keys) with sticky video; fullscreen; keyboard shortcuts `/ k j l f`
+  - `[x]` Privacy page discloses the embedded player (new third-party contact); 8 new Vitest tests → 56 total; browser-verified (player, seek, highlight, font, copy menu, toast, shortcuts)
 - `[ ]` **T2 — Export expansion**: CSV, DOCX (dependency decision at tranche start), export options dialog (timestamps, metadata, selection, filename, formatting)
 - `[ ]` **T3 — Productivity**: find-replace, filler-word removal, paragraph/sentence cleanup, highlights, notes, bookmarks, reading mode, undo/redo, statistics
 - `[ ]` **T4 — AI** → Phase 10 above (browser-side key per ADR-009, plus AI speaker labels; verify current Gemini free-tier models first)
 - `[ ]` **T5 — Advanced**: IndexedDB library + recent, import TXT/SRT/VTT/MD, comparison, shareable links (ADR-011), batch + playlist spike (ADR-012), browser extension
-- `[ ]` **T6 — Release** → Phase 11 above (plus Playwright E2E, large-transcript profiling, dependency audit, sitemap/SEO, PWA, privacy-conscious analytics)
+- `[ ]` **T6 — Release** → Phase 11 above (plus Playwright E2E, large-transcript profiling, dependency audit, sitemap/SEO, PWA) — usage analytics deliberately skipped, owner decision 2026-11-03 (privacy-first)
 
-Checkpoint protocol after every tranche: `eslint` + `tsc` + Vitest + Pytest + `next build` green → browser verification → docs updated in the same change → commit → owner review before the next tranche.
+Checkpoint protocol after every tranche: `eslint` + `tsc` + Vitest + Pytest + `next build` green → browser verification → docs updated in the same change → commit + push → next tranche (owner review deferred to the end, per owner decision 2026-11-03).
 
 ---
 

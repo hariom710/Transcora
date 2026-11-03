@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildExport, toMarkdown, toSrt, toTxt, toVtt } from "@/lib/export";
+import { buildExport, toMarkdown, toPlainText, toSrt, toTxt, toVtt } from "@/lib/export";
 import type { Transcript } from "@/types";
 
 const TRANSCRIPT: Transcript = {
@@ -47,6 +47,14 @@ describe("toTxt", () => {
     expect(toTxt(TRANSCRIPT)).toBe(
       "00:00 Welcome to today's programming tutorial.\n" +
         "00:03 Today we will learn Python fundamentals.",
+    );
+  });
+});
+
+describe("toPlainText", () => {
+  it("joins segment text without clock prefixes", () => {
+    expect(toPlainText(TRANSCRIPT)).toBe(
+      "Welcome to today's programming tutorial.\nToday we will learn Python fundamentals.",
     );
   });
 });

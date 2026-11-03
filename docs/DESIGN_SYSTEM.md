@@ -88,7 +88,7 @@ No carousel, no testimonials, no pricing table, no long marketing copy.
 
 ## I. Transcript workspace design
 
-Video preview card → toolbar card (title · caption-type badge · search · language select) → timestamped segment list (card) → footer row (segment/word/character counts + language · export dropdown). Loading skeleton, empty state and error card are full `.card` surfaces with a Try again action.
+Toolbar card (title · caption-type badge · search · language select · A−/A+ text size · fullscreen) → workspace → footer row (segment/word/character counts + language · export dropdown). On desktop (≥1024px) the workspace is two panes: sticky video player with its metadata card on the left (25–75% width, adjusted by dragging the divider or arrow keys on it) and the transcript pane on the right; below 1024px it stacks with no divider. The active segment — search match or playback position — gets a subtle primary tint and primary timestamp, and auto-scrolls only when off-screen (reduced-motion aware). Keyboard shortcuts: `/` search, `k` play/pause, `j`/`l` ±10s, `f` fullscreen — ignored while typing. If the player fails to load, the metadata card replaces it and timestamps fall back to opening YouTube. Loading skeleton, empty state and error card are full `.card` surfaces with a Try again action.
 
 ## J. Responsive design
 
@@ -96,7 +96,7 @@ Video preview card → toolbar card (title · caption-type badge · search · la
 |---|---|
 | Mobile < 640px | Single column, stacked toolbar, full-width input and CTA, nav links inside disclosure menu, export menu still reachable, 16px inputs |
 | Tablet 640–1024px | Stacked toolbar (full-width search above language select), 2-column feature grid |
-| Desktop > 1024px | Max-width 1100px content, 3-column feature grid, preview row inline |
+| Desktop > 1024px | Max-width 1100px content, 3-column feature grid, two-pane workspace (video \| transcript) with draggable divider |
 
 No horizontal overflow at any width; touch targets ≥ 44px on mobile.
 

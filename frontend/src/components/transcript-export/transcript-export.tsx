@@ -8,6 +8,7 @@ import {
   buildExport,
   copyText,
   downloadBlob,
+  toPlainText,
   toTxt,
   type ExportFormat,
 } from "@/lib/export";
@@ -47,8 +48,8 @@ export function TranscriptExport({ transcript, title }: TranscriptExportProps) {
     window.setTimeout(() => setNotice(null), 4000);
   }
 
-  async function handleCopy() {
-    const ok = await copyText(toTxt(transcript));
+  async function handleCopy(withTimestamps: boolean) {
+    const ok = await copyText(withTimestamps ? toTxt(transcript) : toPlainText(transcript));
     flash(ok ? "Copied to clipboard." : "Could not access the clipboard.", !ok);
   }
 
@@ -121,12 +122,23 @@ export function TranscriptExport({ transcript, title }: TranscriptExportProps) {
               role="menuitem"
               type="button"
               onClick={() => {
-                handleCopy();
+                handleCopy(true);
                 setOpen(false);
               }}
               className="w-full rounded-md px-3 py-3 sm:py-2 text-left text-caption transition-colors duration-150 hover:bg-surface"
             >
-              Copy transcript
+              Copy with timestamps
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => {
+                handleCopy(false);
+                setOpen(false);
+              }}
+              className="w-full rounded-md px-3 py-3 sm:py-2 text-left text-caption transition-colors duration-150 hover:bg-surface"
+            >
+              Copy without timestamps
             </button>
             <button
               role="menuitem"

@@ -30,18 +30,19 @@ frontend/
     ├── components/
     │   ├── layout/           # Header, footer, theme toggle
     │   ├── url-input/        # URL form + validation feedback
-    │   ├── video-preview/    # Title, thumbnail, channel, duration
-    │   ├── transcript-viewer/# Timestamped segment list
+    │   ├── video-preview/    # Title, thumbnail, channel, duration (player fallback)
+    │   ├── video-player/     # Embedded YouTube IFrame player (T1)
+    │   ├── transcript-viewer/# Timestamped segment list + playback highlight
     │   ├── transcript-search/# Search + highlight
     │   ├── transcript-export/# Export controls
     │   └── ui/               # shadcn/ui primitives
-    ├── hooks/                # useTheme (search/edit state lives in the workspace page)
-    ├── lib/                  # URL helpers, formatters, export builders
+    ├── hooks/                # useTheme, useFontSize (search/edit state lives in the workspace page)
+    ├── lib/                  # URL helpers, formatters, export builders, playback sync (binary search)
     ├── services/             # API client
     └── types/                # Video, Transcript, TranscriptSegment
 ```
 
-- **Transcript workspace** renders segments with clickable timestamps and owns search, editing and export state.
+- **Transcript workspace** renders segments with clickable timestamps and owns search, editing and export state; on desktop it is a two-pane layout (sticky video | resizable transcript) with follow-playback highlight, keyboard shortcuts and fullscreen.
 - **Export modules** are pure functions over the in-memory transcript — no server round-trip.
 - **AI modules** are Version 2 only (Phase 10).
 

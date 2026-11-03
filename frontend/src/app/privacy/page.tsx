@@ -10,6 +10,10 @@ const PRINCIPLES = [
     body: "Transcripts stay in your browser. They are not written to a database.",
   },
   {
+    title: "Embedded video player",
+    body: "The transcript workspace embeds YouTube's player, which connects to YouTube when the page opens. What you play is between you and YouTube — Transcora never sees it.",
+  },
+  {
     title: "No URL retention",
     body: "Submitted URLs are used to answer your request and are not kept afterwards.",
   },

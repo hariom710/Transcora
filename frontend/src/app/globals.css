@@ -95,6 +95,15 @@
   transform: rotate(45deg);
 }
 
+/* Fullscreen workspace: the UA paints a transparent background, and page
+   chrome is gone, so the surface brings its own background and scroll. */
+.workspace:fullscreen {
+  background: var(--background);
+  color: var(--foreground);
+  overflow-y: auto;
+  padding: 1rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

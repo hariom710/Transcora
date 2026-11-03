@@ -21,6 +21,11 @@ export function toTxt(t: Transcript): string {
   return t.segments.map((s) => `${formatClock(s.start)} ${s.text}`).join("\n");
 }
 
+/** Clipboard variant without clock prefixes — one paragraph-ish block of text. */
+export function toPlainText(t: Transcript): string {
+  return t.segments.map((s) => s.text).join("\n");
+}
+
 export function toSrt(t: Transcript): string {
   return (
     t.segments

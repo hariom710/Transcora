@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
+import { cn } from "@/lib/cn";
 import { highlightParts } from "@/lib/search";
 import { formatClock } from "@/lib/timestamp";
 import type { TranscriptSegment } from "@/types";
@@ -12,6 +13,10 @@ interface TranscriptViewerProps {
   query: string;
   activeSegmentId: number | null;
   onEdit: (id: number, text: string) => void;
+  /** Seeks the embedded player; when absent the timestamp opens YouTube instead. */
+  onSeek?: (seconds: number) => void;
+  /** Font-size class chosen by the toolbar (font-size controls). */
+  sizeClass: string;
 }
 
 export function TranscriptViewer({
@@ -20,6 +25,8 @@ export function TranscriptViewer({
   query,
   activeSegmentId,
   onEdit,
+  onSeek,
+  sizeClass,
 }: TranscriptViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -30,7 +37,9 @@ export function TranscriptViewer({
     const node = containerRef.current?.querySelector(`[data-segment="${activeSegmentId}"]`);
     if (!node) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    node.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+    // "nearest" scrolls only when the row is off-screen, so playback follow
+    // does not fight the reader's scroll position.
+    node.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
   }, [activeSegmentId]);
 
   function startEdit(segment: TranscriptSegment) {
@@ -64,14 +73,25 @@ export function TranscriptViewer({
           <article
             key={segment.id}
             data-segment={segment.id}
-            className="group relative flex gap-3 px-4 py-3 transition-colors duration-150 hover:bg-background/60 sm:px-5"
+            className={cn(
+              "group relative flex gap-3 px-4 py-3 transition-colors duration-150 hover:bg-background/60 sm:px-5",
+              segment.id === activeSegmentId && "bg-primary/5",
+            )}
           >
             <a
               href={`https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(segment.start)}s`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-14 shrink-0 pt-0.5 font-mono text-caption tabular-nums text-muted-fg transition-colors duration-150 hover:text-primary"
-              title="Open video at this timestamp"
+              onClick={(event) => {
+                if (!onSeek) return;
+                event.preventDefault();
+                onSeek(segment.start);
+              }}
+              className={cn(
+                "w-14 shrink-0 pt-0.5 font-mono text-caption tabular-nums transition-colors duration-150 hover:text-primary",
+                segment.id === activeSegmentId ? "text-primary" : "text-muted-fg",
+              )}
+              title={onSeek ? "Play from this timestamp" : "Open video at this timestamp"}
             >
               {formatClock(segment.start)}
             </a>
@@ -86,12 +106,15 @@ export function TranscriptViewer({
                   rows={Math.min(6, Math.ceil(draft.length / 60))}
                   autoFocus
                   aria-label="Edit transcript segment"
-                  className="w-full resize-y rounded-md border border-border bg-background p-2 font-mono text-body-sm"
+                  className={cn(
+                    "w-full resize-y rounded-md border border-border bg-background p-2 font-mono",
+                    sizeClass,
+                  )}
                 />
               ) : (
                 <p
                   onDoubleClick={() => startEdit(segment)}
-                  className="whitespace-pre-wrap text-body-sm"
+                  className={cn("whitespace-pre-wrap", sizeClass)}
                 >
                   {parts.map((part, index) =>
                     part.hit ? (

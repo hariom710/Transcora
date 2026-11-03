@@ -41,7 +41,7 @@ Status: green — `tests/test_videos_api.py` and `tests/test_transcripts_api.py`
 
 Component behaviour: search matching, editing, counts, export button states, loading/empty/error rendering.
 
-Status: green for pure logic — 48 Vitest tests over URL parsing, timestamps, search and export builders (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they are verified manually in the browser.
+Status: green for pure logic — 56 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant) and playback sync (`findActiveSegment`) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they are verified manually in the browser. The T1 workspace (player, seek, follow-playback highlight, font size, copy menu, keyboard shortcuts) was verified manually in the browser — Playwright coverage is planned for T6.
 
 ## F. TypeScript validation
 
@@ -99,6 +99,7 @@ Provider millisecond/offset formats → seconds · monotonic non-negative starts
 | Format | Assertions |
 |---|---|
 | TXT | plain text, no markup, timestamps per spec |
+| Clipboard | with timestamps (`toTxt`) and without (`toPlainText`) |
 | SRT | valid numbering, arrow syntax, comma decimals, blank-line separation |
 | VTT | `WEBVTT` header, dot decimals, cue syntax |
 | Markdown | structure sane, timestamps preserved |
