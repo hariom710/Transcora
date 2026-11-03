@@ -4,7 +4,7 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 
 **Status:** `[ ]` not started · `[~]` in progress · `[x]` completed · `[!]` blocked.
 
-> **Repository state at creation: empty directory, no application source code, no tests.** Every task below is `[ ]`. Nothing is marked complete because it is planned. Update a task's status only after the work is actually done and verified.
+> Every task began as `[ ]` and is marked `[x]` only after the work was actually done and verified. Repository state at creation: empty directory, no application source code, no tests.
 
 ---
 
@@ -217,6 +217,25 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 
 **Deliverables:** live site passing the release checklist.
 **Acceptance criteria:** a real user can paste a URL and export a transcript from production.
+
+---
+
+## Version 2 tranches — approved 2026-11-03
+
+Owner-approved delivery plan: six tranches, T1 → T6, with a review checkpoint after each. T4 reuses **Phase 10** and T6 reuses **Phase 11** above — those sections stay authoritative for AI and deployment. Governance: [ADR-011](DECISIONS.md), [ADR-012](DECISIONS.md).
+
+- `[x]` **T0 — Governance (2026-11-03)**
+  - `[x]` ADR-011 — database scoped exclusively to shareable transcripts and their lifecycle; ADR-004 marked Superseded; ADR-005 (no accounts) and ADR-009 (browser-side Gemini keys) explicitly preserved
+  - `[x]` ADR-012 — playlist/batch accepted with recorded feasibility research (spike required before playlist ships) and binding security constraints
+  - `[x]` PROJECT.md §F/§J/§K, ARCHITECTURE.md (§A/§C/§E/§J/§N, statuses), SECURITY.md (§A/§G/§L/§M + new §N–§O), TESTING.md (statuses + new §U–§V), TASKS.md and AGENTS.md updated consistently; DESIGN_SYSTEM.md reviewed — no change needed
+- `[ ]` **T1 — Workspace v2**: embedded player, follow-playback sync + auto-scroll, duration via player API, copy with/without timestamps, font-size controls, resizable/fullscreen layout, keyboard shortcuts
+- `[ ]` **T2 — Export expansion**: CSV, DOCX (dependency decision at tranche start), export options dialog (timestamps, metadata, selection, filename, formatting)
+- `[ ]` **T3 — Productivity**: find-replace, filler-word removal, paragraph/sentence cleanup, highlights, notes, bookmarks, reading mode, undo/redo, statistics
+- `[ ]` **T4 — AI** → Phase 10 above (browser-side key per ADR-009, plus AI speaker labels; verify current Gemini free-tier models first)
+- `[ ]` **T5 — Advanced**: IndexedDB library + recent, import TXT/SRT/VTT/MD, comparison, shareable links (ADR-011), batch + playlist spike (ADR-012), browser extension
+- `[ ]` **T6 — Release** → Phase 11 above (plus Playwright E2E, large-transcript profiling, dependency audit, sitemap/SEO, PWA, privacy-conscious analytics)
+
+Checkpoint protocol after every tranche: `eslint` + `tsc` + Vitest + Pytest + `next build` green → browser verification → docs updated in the same change → commit → owner review before the next tranche.
 
 ---
 

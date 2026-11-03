@@ -13,7 +13,7 @@ Read only the documents relevant to the current task. Never load all seven by de
 **Free YouTube Transcript Generator** — a free, lightweight, fast web app that turns available YouTube captions into searchable, editable, downloadable text.
 
 - No mandatory registration, subscription or payment.
-- No database and no authentication in Version 1.
+- No authentication, ever (ADR-005). Database use is limited to shareable transcript links and their lifecycle (ADR-011); everything else stays client-side.
 - Privacy-conscious, minimal dependencies, minimal resource use.
 - Full product definition: [PROJECT.md](docs/PROJECT.md).
 
@@ -26,7 +26,7 @@ Read only the documents relevant to the current task. Never load all seven by de
 | Testing | Pytest, Playwright |
 | Future AI | Google Gemini API, user-supplied key, browser-side |
 | Deployment | Vercel (frontend) + Python-compatible host (backend) |
-| Database | None in Version 1 |
+| Database | Shareable transcripts only (ADR-011); nothing else server-side |
 
 Boundaries:
 

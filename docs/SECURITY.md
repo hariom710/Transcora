@@ -2,13 +2,13 @@
 
 Mandatory security requirements. Rules: [AGENTS.md](../AGENTS.md) · Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · Tests: [TESTING.md](TESTING.md) §Q.
 
-> **Status: Proposed — nothing is implemented yet.** This is the specification the code must satisfy. The verification checklist in §L is signed off only after the checks actually run.
+> **Status: living specification.** Version 1 controls are implemented and covered by tests ([TESTING.md](TESTING.md) §Q); the §L checklist is signed off item-by-item only after each check actually runs — the full review has not been run. Sections §N–§O specify Version 2 features ([ADR-011](DECISIONS.md), [ADR-012](DECISIONS.md)) that are not built yet.
 
 ## A. Security principles
 
 - Deny by default: only explicitly allowed destinations and inputs are accepted.
 - Never trust user input — validate at the boundary, on the server, every time.
-- Least privilege: no auth, no database and no storage means less to protect.
+- Least privilege: no authentication and no user accounts; the only server-side store is shareable transcripts scoped to their lifecycle ([ADR-011](DECISIONS.md), §N) — everything else stays in the browser.
 - Fail safe: errors are generic to users, specific only in server logs.
 - Never bypass YouTube's access controls or restrictions, and never fetch content a user could not access themselves.
 
@@ -56,7 +56,9 @@ Mandatory security requirements. Rules: [AGENTS.md](../AGENTS.md) · Architectur
 ## G. Privacy
 
 - No mandatory account and no collection of personal information.
-- Do not store submitted URLs or transcripts server-side beyond request handling.
+- Do not store submitted URLs or transcripts server-side beyond request handling — **except** a transcript the user explicitly publishes as a shareable link ([ADR-011](DECISIONS.md), §N), which is stored only until expiry or deletion.
+- Sharing requires explicit consent in-product: a clear statement that the transcript becomes readable by anyone holding the link, that it is stored on our server, when it expires and how to delete it. Sharing is opt-in per transcript, never the default and never automatic.
+- Shared transcript pages are excluded from search engines (`noindex` header plus robots rules).
 - Do not log full transcript contents; log metadata only (video ID, status, duration).
 - Retain logs briefly; no third-party analytics on transcript content.
 - Explain plainly in-product that the tool extracts existing captions and does not transcribe audio.
@@ -109,6 +111,11 @@ Mandatory security requirements. Rules: [AGENTS.md](../AGENTS.md) · Architectur
 - [ ] Transcript contents absent from logs
 - [ ] Gemini key never leaves the browser (Phase 10)
 - [ ] Dependency audit free of high-severity findings
+- [ ] Share tokens ≥ 128-bit CSPRNG, stored only as hashes (ADR-011, §N)
+- [ ] Expired share indistinguishable from missing; expiry purge runs (§N)
+- [ ] Share creation rate-limited and body size capped — 429/413 verified (§N)
+- [ ] Share logs contain no transcript content and no full tokens (§N)
+- [ ] Batch capped at 20, sequential, one shared per-IP rate budget (ADR-012, §O)
 
 ## M. Threat model and mitigations
 
@@ -122,5 +129,32 @@ Mandatory security requirements. Rules: [AGENTS.md](../AGENTS.md) · Architectur
 | Dependency compromise | Typosquatting, vulnerable package | Minimal deps, pinned lockfiles, audit ([§I](#i-dependency-security)) |
 | Information disclosure | Verbose errors, logging | Unified safe errors, metadata-only logs ([§D](#d-api-security), [§G](#g-privacy)) |
 | Redirect-based SSRF | Provider redirect to hostile host | No unvalidated redirect following ([§C](#c-ssrf-prevention)) |
+| Share-token guessing | Enumerating `/api/v1/shares/{token}` | 128-bit CSPRNG tokens, hashed at rest, creation rate-limited ([§N](#n-shareable-transcript-security-v2-adr-011)) |
+| Share storage abuse | Flooding the creation endpoint | Stricter per-IP bucket, 1 MiB cap, 30-day TTL purge ([§N](#n-shareable-transcript-security-v2-adr-011)) |
+| Non-consensual publication | Transcript shared without user intent | Explicit per-transcript action with disclosure, `noindex` ([§G](#g-privacy), [§N](#n-shareable-transcript-security-v2-adr-011)) |
+| Bulk extraction abuse | Batch used as a rate-limit loophole | ≤ 20 items, sequential with delay, shared budget ([§O](#o-bulk-extraction-security-v2-adr-012)) |
 
 **Explicitly out of scope and prohibited:** bypassing YouTube restrictions, downloading inaccessible content, evading IP blocks, or any circumvention of access controls.
+
+## N. Shareable transcript security (V2, ADR-011)
+
+Binding when the feature is built; not implemented yet. Requirements below are the acceptance criteria for T5.
+
+| Control | Requirement |
+|---|---|
+| Token entropy | Share and delete tokens ≥ 128 bits from a CSPRNG (`secrets` module), URL-safe encoding. Store only SHA-256 hashes — a database dump yields no working links. Never derive tokens from video IDs, timestamps or anything predictable; never reuse a token. |
+| Expiration | Default TTL 30 days from creation, stored as `expires_at` and indexed. Expired and unknown tokens return the standard safe 404 — identical responses, no enumeration oracle. Rows removed by a periodic or lazy sweep; no rows linger past expiry. |
+| Deletion | Every creation returns a one-time delete token, shown once to the creator. Deletion requires it; wrong or missing token → safe 404/403. Deletion removes the row immediately — no recovery, by design. |
+| Rate limits | Dedicated stricter per-IP bucket for creation (target 10/hour and 50/day per IP, tunable) on top of the global limiter; reads share the global limit. `429` with `Retry-After` per §D. |
+| Body-size limits | Creation body capped at 1 MiB at both reverse proxy and app layer (Pydantic), plus per-field limits (segment count, text length) per §E. Oversized → 413 with the safe error shape. |
+| Privacy consent | Sharing is an explicit per-transcript action with in-product disclosure: stored server-side, readable by anyone holding the link, expires in 30 days, deletable with the delete token. Never share automatically; never pre-select sharing. Share pages send `noindex` and are excluded in robots rules. |
+| Safe logging | Metadata only: truncated token prefix (≤ 8 chars) or token hash, video ID, byte size, created/expires timestamps, outcome. Never log transcript content, full share tokens or delete tokens. Retention per §G. |
+| Abuse control | Creation requires a valid extracted transcript first — the endpoint is not a free-form dump. Shared content is untrusted (§F applies to the read view). The feature must be disableable by configuration if abused. |
+
+## O. Bulk extraction security (V2, ADR-012)
+
+- Batch submissions capped at 20 videos; playlist results capped likewise. Sequential extraction with an inter-request delay and a bounded overall timeout.
+- One shared per-IP rate budget across the whole batch — a batch must never become a rate-limit loophole.
+- Partial failure returns explicit per-item results (success or error code per video), never a silently mixed or truncated transcript.
+- SSRF rules (§C) unchanged: batch and playlist input is never fetched as a URL; only validated video IDs leave the service. IDs returned by playlist enumeration are re-validated against `^[A-Za-z0-9_-]{11}$` before use — enumeration output is untrusted input.
+- The playlist enumeration method must pass the ADR-012 spike review before shipping; no method may weaken §B or §C.

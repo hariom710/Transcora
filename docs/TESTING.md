@@ -2,7 +2,7 @@
 
 How correctness is proven. Progress: [TASKS.md](TASKS.md). Rules: [AGENTS.md](../AGENTS.md) §F.
 
-> **No test has been executed in this repository yet.** There is no application source code, no test configuration and no CI. Commands below are the target setup and are marked accordingly — they will only work once Phase 1 scaffolding exists. **Never record a result here that was not actually observed.**
+> **Status (2026-11-03):** Version 1 suites exist and are green — 37 backend tests (Pytest) and 48 frontend tests (Vitest), plus clean `eslint`, `tsc --noEmit` and `next build` (recorded in [TASKS.md](TASKS.md) Phase 9). Playwright is not installed; E2E flows were verified manually in a browser. Sections §U–§V specify tests for Version 2 features that do not exist yet. **Never record a result here that was not actually observed.**
 
 ## A. Testing philosophy
 
@@ -21,13 +21,13 @@ pytest tests/test_url_parser.py -q
 pytest tests/test_transcript_service.py -q
 ```
 
-Status: **not yet runnable** (no backend scaffold).
+Status: green — both files are part of the 37-test backend suite.
 
 ## C. Backend integration testing
 
 Service + mocked provider, verifying orchestration, timeout handling and error taxonomy.
 
-Status: **not yet runnable**.
+Status: green — the provider is mocked at the boundary via `conftest.py` fixtures (§H).
 
 ## D. API testing
 
@@ -35,13 +35,13 @@ FastAPI `TestClient` (or httpx ASGI transport) against `/health`, `/api/v1/video
 
 Assert status codes, response shape, and the unified error contract.
 
-Status: **not yet runnable**.
+Status: green — `tests/test_videos_api.py` and `tests/test_transcripts_api.py` use FastAPI `TestClient` (rate limiting covered by an explicit test).
 
 ## E. Frontend testing
 
 Component behaviour: search matching, editing, counts, export button states, loading/empty/error rendering.
 
-Status: **not yet runnable** (no frontend scaffold).
+Status: green for pure logic — 48 Vitest tests over URL parsing, timestamps, search and export builders (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they are verified manually in the browser.
 
 ## F. TypeScript validation
 
@@ -50,14 +50,14 @@ npx tsc --noEmit
 npm run lint
 ```
 
-Strict mode must produce zero errors. Status: **not yet runnable**.
+Strict mode must produce zero errors. Status: green — `eslint` clean and zero `tsc` errors on every run.
 
 ## G. End-to-end testing (Playwright)
 
 Happy path: paste URL → transcript rendered → search finds a match → export SRT downloads.
 Error paths: invalid URL, caption-less video, backend unavailable.
 
-Status: **not yet runnable**.
+Status: Playwright **not installed** — the flows above were verified manually in a browser (TASKS.md Phase 9); installation and a real suite are planned for tranche T6.
 
 ## H. Mocking external YouTube services
 
@@ -119,7 +119,9 @@ Every error path returns the unified shape `{ "error": { "code", "message" } }` 
 
 SSRF: attempts to submit non-YouTube URLs never cause an outbound request. Allowlist enforced server-side, not only in the UI. Rate limiting returns 429 under load. Request size limits enforced. CORS rejects unknown origins. Transcript text renders as text — never injected HTML.
 
-See [SECURITY.md](SECURITY.md) §B–§E, §L.
+Version 2 adds, once implemented: share token entropy and expiry behaviour, share creation rate/size limits, log assertions (no content, no full tokens), and batch cap/rate-budget tests — see §U–§V.
+
+See [SECURITY.md](SECURITY.md) §B–§E, §L, §N–§O.
 
 ## R. Gemini integration tests (Phase 10)
 
@@ -145,6 +147,7 @@ Key never appears in logs or in any request to our backend.
 - [ ] Mobile viewport verified
 - [ ] Error states verified with backend stopped
 - [ ] Dependency audit clean of high-severity issues
+- [ ] Share lifecycle (create → read → expire → delete) verified in production (ADR-011)
 - [ ] [SECURITY.md](SECURITY.md) §L checklist signed off
 
 ## T. Windows development commands
@@ -153,13 +156,40 @@ Aligned with this environment: **Windows 10/11, Node 22, Python 3.13, Git**. No 
 
 | Purpose | Command | Status |
 |---|---|---|
-| Frontend dev | `npm run dev` | not yet runnable |
-| Type check | `npx tsc --noEmit` | not yet runnable |
-| Lint | `npm run lint` | not yet runnable |
-| Frontend tests | `npm test` | not yet runnable |
-| Backend dev | `uvicorn app.main:app --reload` | not yet runnable |
-| Backend tests | `pytest -q` | not yet runnable |
-| Targeted test | `pytest tests/test_url_parser.py -q` | not yet runnable |
-| E2E | `npx playwright test` | not yet runnable |
+| Frontend dev | `npm run dev` | runnable |
+| Type check | `npx tsc --noEmit` | green |
+| Lint | `npm run lint` | green |
+| Frontend tests | `npm test` | green (48) |
+| Frontend build | `npm run build` | green |
+| Backend dev | `uvicorn app.main:app --reload` | runnable |
+| Backend tests | `pytest -q` | green (37) |
+| Targeted test | `pytest tests/test_url_parser.py -q` | runnable |
+| E2E | `npx playwright test` | not installed — planned for T6 |
 
-These become runnable when Phase 1 scaffolding lands. Update this table if the project's actual configuration differs — document only commands the real configuration supports.
+These match the project's actual configuration. Update this table if the configuration differs — document only commands the real configuration supports.
+
+## U. Share link tests (V2, ADR-011) — not yet runnable
+
+| Case | Expected |
+|---|---|
+| Create share | returns share URL + one-time delete token; stored payload round-trips byte-identical, unicode preserved |
+| Token properties | tokens unique and unpredictable across many generations; database stores SHA-256 hashes only, never raw tokens |
+| Fetch valid share | normalized `Transcript` shape, same contract as extraction |
+| Unknown vs expired token | identical safe 404 for both — no enumeration oracle |
+| Delete wrong token | rejected safely; correct token removes the row immediately |
+| Oversized payload | 413, safe error, nothing stored |
+| Creation flood | 429 with `Retry-After` once the share-specific bucket is exhausted |
+| Logging | no transcript content and no full share/delete token in any log record (`caplog` assertion) |
+| Expiry purge | rows past `expires_at` removed; reads after expiry fail safely |
+| Consent UI | sharing impossible without the explicit disclosure action (frontend test) |
+
+## V. Batch and playlist tests (V2, ADR-012) — not yet runnable
+
+| Case | Expected |
+|---|---|
+| Batch of valid URLs | per-item results in order; extraction calls sequential with delay (mock provider, assert call sequence) |
+| Partial failure | one caption-less video → that item errors while others succeed; no mixed or silent transcript |
+| Batch over cap | more than 20 items rejected before any extraction |
+| Rate budget | batch counts against the same per-IP limit; mid-batch 429 surfaces as a per-item error |
+| Playlist spike fixtures | chosen method's responses mocked per §H; every enumerated ID re-validated against `^[A-Za-z0-9_-]{11}$` |
+| Playlist unsupported | clear structured error; the rest of the app remains usable |
