@@ -36,8 +36,8 @@ frontend/
     │   ├── transcript-search/# Search + highlight
     │   ├── transcript-export/# Export controls
     │   └── ui/               # shadcn/ui primitives
-    ├── hooks/                # useTheme, useFontSize (search/edit state lives in the workspace page)
-    ├── lib/                  # URL helpers, formatters, export builders, playback sync (binary search)
+    ├── hooks/                # useTheme, useFontSize, useEditHistory (search/edit state lives in the workspace page)
+    ├── lib/                  # URL helpers, formatters, export builders, playback sync (binary search), productivity tools
     ├── services/             # API client
     └── types/                # Video, Transcript, TranscriptSegment
 ```

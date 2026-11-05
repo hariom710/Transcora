@@ -237,7 +237,12 @@ Owner-approved delivery plan: six tranches, T1 → T6. Protocol revised by owner
   - `[x]` CSV (RFC 4180) + DOCX builders; `buildExport` now async; `ExportOptions` (timestamps, metadata header, segment/paragraph formatting, filename) with per-format applicability (SRT/VTT fixed by spec, PDF fixed, MD heading always shown)
   - `[x]` Export options dialog: format pills, filename input, scope (entire vs current search matches via `filterSegments`), Escape/outside-click close with focus return; menu wired through the dialog; homepage/about copy + format chips updated
   - `[x]` 10 new Vitest tests → 66 total; browser-verified (CSV 2.8 KB valid content, DOCX `PK` + metadata + paragraphs, scope export = exactly the 38 matching lines, Escape/focus return)
-- `[ ]` **T3 — Productivity**: find-replace, filler-word removal, paragraph/sentence cleanup, highlights, notes, bookmarks, reading mode, undo/redo, statistics
+- `[x]` **T3 — Productivity (2026-11-05)**
+  - `[x]` Find-and-replace (case-insensitive literal, "Replace all (n)" in the search card); remove fillers + clean-up-text bulk tools, each one undo step with a toast count
+  - `[x]` Per-segment annotations: highlight tint, inline note, bookmark star + prev/next bookmark toolbar navigation; all client-state (no storage, per ADR-004)
+  - `[x]` Reading mode (`r` or toolbar toggle: video hidden, single centred column); undo/redo (`use-edit-history` reducer, 50-step stack, Ctrl/Cmd+Z, Shift+Z or Y) with toolbar buttons
+  - `[x]` Statistics extended with reading time (200 wpm) + highlight/note/bookmark counts
+  - `[x]` 17 new Vitest tests → 83 total; verification via lint/tsc/Pytest/`next build`/HTTP 200 smoke — browser tooling was removed from the agent environment on 2026-11-05, so no interactive browser pass was possible for this tranche
 - `[ ]` **T4 — AI** → Phase 10 above (browser-side key per ADR-009, plus AI speaker labels; verify current Gemini free-tier models first)
 - `[ ]` **T5 — Advanced**: IndexedDB library + recent, import TXT/SRT/VTT/MD, comparison, shareable links (ADR-011), batch + playlist spike (ADR-012), browser extension
 - `[ ]` **T6 — Release** → Phase 11 above (plus Playwright E2E, large-transcript profiling, dependency audit, sitemap/SEO, PWA) — usage analytics deliberately skipped, owner decision 2026-11-03 (privacy-first)

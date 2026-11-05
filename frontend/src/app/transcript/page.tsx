@@ -19,8 +19,18 @@ import { VideoPlayer, type PlayerCommand } from "@/components/video-player/video
 import { VideoPreview } from "@/components/video-preview/video-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useEditHistory } from "@/hooks/use-edit-history";
 import { FONT_SIZES, useFontSize } from "@/hooks/use-font-size";
+import { cn } from "@/lib/cn";
 import { findActiveSegment } from "@/lib/playback";
+import {
+  bulkTransform,
+  cleanupText,
+  readingMinutes,
+  removeFillers,
+  replaceAll,
+  toggleId,
+} from "@/lib/productivity";
 import { findMatches } from "@/lib/search";
 import { parseVideoId } from "@/lib/url";
 import { ApiFailure, extractTranscript, inspectVideo, listLanguages } from "@/services/api";
@@ -52,8 +62,17 @@ function Workspace() {
   const [result, setResult] = useState<LoadResult | null>(null);
 
   const [query, setQuery] = useState("");
-  const [edits, setEdits] = useState<Record<number, string>>({});
+  const [replacement, setReplacement] = useState("");
   const [activeMatch, setActiveMatch] = useState(0);
+
+  // T3 productivity: undo/redo over edits, annotations, reading mode, tool toast.
+  const { edits, canUndo, canRedo, patch, commit, undo, redo } = useEditHistory();
+  const [highlights, setHighlights] = useState<ReadonlySet<number>>(new Set());
+  const [bookmarks, setBookmarks] = useState<ReadonlySet<number>>(new Set());
+  const [notes, setNotes] = useState<Record<number, string>>({});
+  const [readingMode, setReadingMode] = useState(false);
+  const [toolNotice, setToolNotice] = useState<string | null>(null);
+  const toolTimer = useRef<number>(0);
 
   // Player state: follow-playback sync, duration from the IFrame API, fallback.
   const [playbackId, setPlaybackId] = useState<number | null>(null);
@@ -195,14 +214,30 @@ function Workspace() {
     window.addEventListener("pointerup", stop);
   }
 
-  // Workspace shortcuts: "/" search, k play/pause, j/l seek, f fullscreen.
+  // Workspace shortcuts: "/" search, k play/pause, j/l seek, f fullscreen,
+  // r reading mode; Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl+Y redo.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable)
-        return;
+      const typing =
+        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable;
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && !typing) {
+        const key = event.key.toLowerCase();
+        if (key === "z") {
+          event.preventDefault();
+          if (event.shiftKey) redo();
+          else undo();
+          return;
+        }
+        if (key === "y") {
+          event.preventDefault();
+          redo();
+          return;
+        }
+      }
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (typing) return;
       switch (event.key) {
         case "/":
           event.preventDefault();
@@ -220,11 +255,14 @@ function Workspace() {
         case "f":
           toggleFullscreen();
           break;
+        case "r":
+          setReadingMode((value) => !value);
+          break;
       }
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [sendToggle, seekTo, toggleFullscreen]);
+  }, [sendToggle, seekTo, toggleFullscreen, undo, redo]);
 
   const safeIndex = matches.length > 0 ? activeMatch % matches.length : 0;
   // A search match wins while a query is active; otherwise follow playback.
@@ -242,9 +280,71 @@ function Workspace() {
     return { segments: current.segments.length, words, characters };
   }, [current]);
 
-  const handleEdit = useCallback((id: number, text: string) => {
-    setEdits((previous) => ({ ...previous, [id]: text }));
-  }, []);
+  const handleEdit = useCallback(
+    (id: number, text: string) => {
+      patch({ [id]: text });
+    },
+    [patch],
+  );
+
+  function flashTool(text: string) {
+    setToolNotice(text);
+    window.clearTimeout(toolTimer.current);
+    toolTimer.current = window.setTimeout(() => setToolNotice(null), 3500);
+  }
+
+  function handleNote(id: number, text: string) {
+    setNotes((previous) => {
+      const next = { ...previous };
+      if (text) next[id] = text;
+      else delete next[id];
+      return next;
+    });
+  }
+
+  /** Bulk text tool: transforms every segment, one undo step for the lot. */
+  function runTool(name: string, transform: (text: string) => string) {
+    if (!current) return;
+    const delta = bulkTransform(current.segments, transform);
+    const count = Object.keys(delta).length;
+    if (count === 0) {
+      flashTool(`${name}: nothing to change.`);
+      return;
+    }
+    commit({ ...edits, ...delta });
+    flashTool(`${name}: ${count} segments updated (Ctrl+Z to undo).`);
+  }
+
+  function handleReplaceAll() {
+    if (!current || !query) return;
+    const delta = replaceAll(current.segments, query, replacement);
+    const count = Object.keys(delta).length;
+    if (count === 0) {
+      flashTool("Replace: nothing to change.");
+      return;
+    }
+    commit({ ...edits, ...delta });
+    flashTool(`Replace: ${count} segments updated (Ctrl+Z to undo).`);
+  }
+
+  function jumpToSegment(segment: TranscriptSegment) {
+    // Set first so the jump is visible instantly; the player seek confirms it.
+    setPlaybackId(segment.id);
+    seekTo(segment.start);
+  }
+
+  function jumpBookmark(direction: 1 | -1) {
+    if (!current || bookmarks.size === 0) return;
+    const list = current.segments.filter((segment) => bookmarks.has(segment.id));
+    if (list.length === 0) return;
+    const time = timeRef.current;
+    const target =
+      direction === 1
+        ? list.find((segment) => segment.start > time + 0.5) ?? list[0]
+        : ([...list].reverse().find((segment) => segment.start < time - 0.5) ??
+          list[list.length - 1]);
+    jumpToSegment(target);
+  }
 
   function handleQueryChange(value: string) {
     setQuery(value);
@@ -300,66 +400,150 @@ function Workspace() {
 
   return (
     <div ref={workspaceRef} className="workspace flex flex-col gap-5">
-      {/* Toolbar: title, caption type, search, language, text size, fullscreen.
-          Stacked below lg so the search field keeps a usable width on tablets. */}
-      <div className="card flex flex-col gap-3 p-3 lg:flex-row lg:items-center">
-        <div className="flex flex-wrap items-center gap-3 lg:shrink-0">
-          <h1 className="text-body font-semibold">Transcript</h1>
-          <Badge>{current.is_generated ? "Auto-generated" : "Manual captions"}</Badge>
+      {/* Toolbar: title, caption type, search, language, text size, fullscreen;
+          a second row holds the T3 productivity tools. */}
+      <div className="card flex flex-col gap-3 p-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="flex flex-wrap items-center gap-3 lg:shrink-0">
+            <h1 className="text-body font-semibold">Transcript</h1>
+            <Badge>{current.is_generated ? "Auto-generated" : "Manual captions"}</Badge>
+          </div>
+          <TranscriptSearch
+            inputRef={searchRef}
+            query={query}
+            onQueryChange={handleQueryChange}
+            matchCount={matches.length}
+            activeMatch={matches.length ? safeIndex + 1 : 0}
+            onPrevious={() => setActiveMatch((value) => value - 1)}
+            onNext={() => setActiveMatch((value) => value + 1)}
+            replacement={replacement}
+            onReplacementChange={setReplacement}
+            onReplaceAll={handleReplaceAll}
+          />
+          <label className="flex shrink-0 items-center gap-2 text-caption text-muted-fg">
+            Language
+            <select
+              value={language}
+              onChange={(event) => setLanguage(event.target.value)}
+              className="h-11 rounded-md border border-border bg-background px-2 text-caption text-foreground sm:h-9"
+            >
+              <option value="">Default</option>
+              {languages.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => changeFont(-1)}
+              disabled={fontScale === 0}
+              aria-label="Smaller transcript text"
+              title="Smaller text"
+            >
+              A−
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => changeFont(1)}
+              disabled={fontScale === FONT_SIZES.length - 1}
+              aria-label="Larger transcript text"
+              title="Larger text"
+            >
+              A+
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              title="Fullscreen (F)"
+            >
+              {fullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
+            </Button>
+          </div>
         </div>
-        <TranscriptSearch
-          inputRef={searchRef}
-          query={query}
-          onQueryChange={handleQueryChange}
-          matchCount={matches.length}
-          activeMatch={matches.length ? safeIndex + 1 : 0}
-          onPrevious={() => setActiveMatch((value) => value - 1)}
-          onNext={() => setActiveMatch((value) => value + 1)}
-        />
-        <label className="flex shrink-0 items-center gap-2 text-caption text-muted-fg">
-          Language
-          <select
-            value={language}
-            onChange={(event) => setLanguage(event.target.value)}
-            className="h-11 rounded-md border border-border bg-background px-2 text-caption text-foreground sm:h-9"
-          >
-            <option value="">Default</option>
-            {languages.map((item) => (
-              <option key={item.code} value={item.code}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="flex shrink-0 items-center gap-1">
+
+        {/* T3 productivity row: undo/redo, text tools, reading mode, bookmarks. */}
+        <div
+          role="group"
+          aria-label="Transcript tools"
+          className="flex flex-wrap items-center gap-1.5 border-t border-border pt-3"
+        >
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => changeFont(-1)}
-            disabled={fontScale === 0}
-            aria-label="Smaller transcript text"
-            title="Smaller text"
+            onClick={undo}
+            disabled={!canUndo}
+            aria-label="Undo"
+            title="Undo (Ctrl+Z)"
           >
-            A−
+            ↶ Undo
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => changeFont(1)}
-            disabled={fontScale === FONT_SIZES.length - 1}
-            aria-label="Larger transcript text"
-            title="Larger text"
+            onClick={redo}
+            disabled={!canRedo}
+            aria-label="Redo"
+            title="Redo (Ctrl+Shift+Z)"
           >
-            A+
+            ↷ Redo
+          </Button>
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => runTool("Remove fillers", (text) => cleanupText(removeFillers(text)))}
+            title="Drop spoken fillers like um, uh, hmm"
+          >
+            Remove fillers
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={toggleFullscreen}
-            aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            title="Fullscreen (F)"
+            onClick={() => runTool("Clean up text", cleanupText)}
+            title="Fix repeated spaces and space before punctuation"
           >
-            {fullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
+            Clean up text
+          </Button>
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setReadingMode((value) => !value)}
+            aria-pressed={readingMode}
+            title="Hide the video and read a single column (R)"
+          >
+            Reading mode
+          </Button>
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => jumpBookmark(-1)}
+            disabled={bookmarks.size === 0}
+            aria-label="Previous bookmark"
+            title="Previous bookmark"
+          >
+            ‹★
+          </Button>
+          <span className="text-caption tabular-nums text-muted-fg" aria-live="polite">
+            ★ {bookmarks.size}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => jumpBookmark(1)}
+            disabled={bookmarks.size === 0}
+            aria-label="Next bookmark"
+            title="Next bookmark"
+          >
+            ★›
           </Button>
         </div>
       </div>
@@ -370,39 +554,48 @@ function Workspace() {
         style={{ "--split": `${split}%` } as CSSProperties}
         className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-3"
       >
-        <section className="flex w-full min-w-0 flex-col gap-4 lg:sticky lg:top-16 lg:w-[var(--split)] lg:shrink-0">
-          {playerFailed ? (
-            <VideoPreview video={video} />
-          ) : (
-            <>
-              <VideoPlayer
-                videoId={videoId}
-                command={command}
-                onTime={handleTime}
-                onDuration={setPlayerDuration}
-                onError={() => setPlayerFailed(true)}
-              />
-              <VideoPreview
-                video={video ? { ...video, duration: playerDuration ?? video.duration } : null}
-              />
-            </>
+        {!readingMode && (
+          <>
+            <section className="flex w-full min-w-0 flex-col gap-4 lg:sticky lg:top-16 lg:w-[var(--split)] lg:shrink-0">
+              {playerFailed ? (
+                <VideoPreview video={video} />
+              ) : (
+                <>
+                  <VideoPlayer
+                    videoId={videoId}
+                    command={command}
+                    onTime={handleTime}
+                    onDuration={setPlayerDuration}
+                    onError={() => setPlayerFailed(true)}
+                  />
+                  <VideoPreview
+                    video={video ? { ...video, duration: playerDuration ?? video.duration } : null}
+                  />
+                </>
+              )}
+            </section>
+
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize video and transcript panes"
+              tabIndex={0}
+              onPointerDown={startResize}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowLeft") setSplit((value) => Math.max(25, value - 2));
+                if (event.key === "ArrowRight") setSplit((value) => Math.min(75, value + 2));
+              }}
+              className="hidden w-1 shrink-0 cursor-col-resize self-stretch rounded-full bg-border transition-colors duration-150 hover:bg-primary lg:block"
+            />
+          </>
+        )}
+
+        <section
+          className={cn(
+            "flex min-w-0 flex-1 flex-col gap-4",
+            readingMode && "mx-auto w-full max-w-3xl",
           )}
-        </section>
-
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize video and transcript panes"
-          tabIndex={0}
-          onPointerDown={startResize}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowLeft") setSplit((value) => Math.max(25, value - 2));
-            if (event.key === "ArrowRight") setSplit((value) => Math.min(75, value + 2));
-          }}
-          className="hidden w-1 shrink-0 cursor-col-resize self-stretch rounded-full bg-border transition-colors duration-150 hover:bg-primary lg:block"
-        />
-
-        <section className="flex min-w-0 flex-1 flex-col gap-4">
+        >
           {current.segments.length === 0 ? (
             <p className="card p-5 text-body-sm text-muted-fg">
               This video has no caption text available.
@@ -416,6 +609,12 @@ function Workspace() {
               onEdit={handleEdit}
               onSeek={playerFailed ? undefined : seekTo}
               sizeClass={FONT_SIZES[fontScale]}
+              highlights={highlights}
+              bookmarks={bookmarks}
+              notes={notes}
+              onToggleHighlight={(id) => setHighlights((value) => toggleId(value, id))}
+              onToggleBookmark={(id) => setBookmarks((value) => toggleId(value, id))}
+              onNote={handleNote}
             />
           )}
 
@@ -423,7 +622,10 @@ function Workspace() {
             {stats && (
               <p className="text-caption text-muted-fg" aria-live="polite">
                 {stats.segments} segments · {stats.words} words · {stats.characters} characters ·{" "}
-                {current.language}
+                {readingMinutes(stats.words)} min read · {current.language}
+                {highlights.size > 0 && <> · {highlights.size} highlighted</>}
+                {Object.keys(notes).length > 0 && <> · {Object.keys(notes).length} notes</>}
+                {bookmarks.size > 0 && <> · ★ {bookmarks.size} bookmarked</>}
               </p>
             )}
             <TranscriptExport
@@ -434,6 +636,15 @@ function Workspace() {
           </div>
         </section>
       </div>
+
+      {toolNotice && (
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-50 max-w-[calc(100vw-3rem)] animate-fade-in rounded-full border border-border bg-background px-4 py-2 text-caption shadow-md"
+        >
+          {toolNotice}
+        </div>
+      )}
     </div>
   );
 }

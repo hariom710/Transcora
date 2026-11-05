@@ -41,7 +41,7 @@ Status: green — `tests/test_videos_api.py` and `tests/test_transcripts_api.py`
 
 Component behaviour: search matching, editing, counts, export button states, loading/empty/error rendering.
 
-Status: green for pure logic — 66 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering) and playback sync (`findActiveSegment`) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they are verified manually in the browser. The T1 workspace (player, seek, follow-playback highlight, font size, copy menu, keyboard shortcuts) and the T2 export dialog (CSV/DOCX downloads, options, search-results scope, Escape/focus return) were verified manually in the browser — Playwright coverage is planned for T6.
+Status: green for pure logic — 83 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering), playback sync (`findActiveSegment`) and productivity tools (fillers, cleanup, replace, bulk transform, undo/redo reducer) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they were verified manually in the browser up to T2 — from T3 on the agent's browser tooling was removed (2026-11-05), so T3 was verified via lint/tsc/Pytest/`next build`/HTTP smoke only. Playwright coverage is planned for T6.
 
 ## F. TypeScript validation
 
