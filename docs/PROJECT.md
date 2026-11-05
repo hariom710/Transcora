@@ -89,7 +89,7 @@ Two former exclusions are now accepted with constraints: a database limited to s
 | 5 | Transcript API and data management | Versioned endpoints, schemas, error contract |
 | 6 | Frontend and transcript workspace | Timestamped viewer, responsive UI, themes |
 | 7 | Transcript productivity tools | Search, highlight, editing, copy, counts |
-| 8 | Export and download system | TXT, SRT, VTT, Markdown, PDF |
+| 8 | Export and download system | TXT, SRT, VTT, Markdown, CSV, DOCX, PDF + options dialog (timestamps, metadata, scope, filename, formatting) |
 | 9 | Testing, security and performance | Full suites, hardening, large-transcript profiling |
 | 10 | Gemini AI integration | AI summaries, notes, chapters, Q&A |
 | 11 | Deployment and final release | Production deploy, verification, launch |

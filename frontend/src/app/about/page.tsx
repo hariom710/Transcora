@@ -12,7 +12,7 @@ export default function AboutPage() {
       <p className="text-body-sm text-muted-fg">
         It reads available caption tracks — both creator-provided and auto-generated — and
         renders them with timestamps. You can search, jump to a moment, edit the text and
-        export TXT, SRT, VTT, Markdown or PDF.
+        export TXT, SRT, VTT, Markdown, CSV, DOCX or PDF.
       </p>
       <h2 className="text-body font-semibold">What it does not do</h2>
       <p className="text-body-sm text-muted-fg">

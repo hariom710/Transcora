@@ -4,26 +4,27 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
+  EXPORT_FORMATS,
   EXPORT_LABELS,
-  buildExport,
   copyText,
-  downloadBlob,
   toPlainText,
   toTxt,
   type ExportFormat,
 } from "@/lib/export";
 import type { Transcript } from "@/types";
-
-const FORMATS: ExportFormat[] = ["txt", "srt", "vtt", "md", "pdf"];
+import { ExportDialog } from "./export-dialog";
 
 interface TranscriptExportProps {
   transcript: Transcript;
   title?: string | null;
+  /** Segment ids of current search matches — offered as an export scope. */
+  matchIds: readonly number[];
 }
 
-export function TranscriptExport({ transcript, title }: TranscriptExportProps) {
+export function TranscriptExport({ transcript, title, matchIds }: TranscriptExportProps) {
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
   const [open, setOpen] = useState(false);
+  const [dialogFormat, setDialogFormat] = useState<ExportFormat | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // The menu closes on outside click and on Escape (DESIGN_SYSTEM.md §G).
@@ -53,10 +54,10 @@ export function TranscriptExport({ transcript, title }: TranscriptExportProps) {
     flash(ok ? "Copied to clipboard." : "Could not access the clipboard.", !ok);
   }
 
-  function handleExport(format: ExportFormat) {
-    const { blob, filename } = buildExport(format, transcript, title);
-    downloadBlob(blob, filename);
-    flash(`Downloaded ${filename}`);
+  function closeDialog() {
+    setDialogFormat(null);
+    // Return focus to the menu trigger (DESIGN_SYSTEM.md §K).
+    rootRef.current?.querySelector("button")?.focus();
   }
 
   function handleSelectAll() {
@@ -102,13 +103,13 @@ export function TranscriptExport({ transcript, title }: TranscriptExportProps) {
             aria-label="Export transcript"
             className="absolute right-0 top-full z-20 mt-2 w-52 animate-fade-in rounded-xl border border-border bg-background p-1.5 shadow-lg"
           >
-            {FORMATS.map((format) => (
+            {EXPORT_FORMATS.map((format) => (
               <button
                 key={format}
                 role="menuitem"
                 type="button"
                 onClick={() => {
-                  handleExport(format);
+                  setDialogFormat(format);
                   setOpen(false);
                 }}
                 className="flex w-full items-center justify-between rounded-md px-3 py-3 sm:py-2 text-caption transition-colors duration-150 hover:bg-surface"
@@ -158,12 +159,23 @@ export function TranscriptExport({ transcript, title }: TranscriptExportProps) {
       {notice && (
         <div
           role={notice.error ? "alert" : "status"}
-          className={`fixed bottom-6 right-6 z-30 max-w-[calc(100vw-3rem)] animate-fade-in rounded-full border border-border bg-background px-4 py-2 text-caption shadow-md ${
+          className={`fixed bottom-6 right-6 z-50 max-w-[calc(100vw-3rem)] animate-fade-in rounded-full border border-border bg-background px-4 py-2 text-caption shadow-md ${
             notice.error ? "text-error" : "text-foreground"
           }`}
         >
           {notice.text}
         </div>
+      )}
+
+      {dialogFormat && (
+        <ExportDialog
+          format={dialogFormat}
+          transcript={transcript}
+          title={title}
+          matchIds={matchIds}
+          onClose={closeDialog}
+          onExported={flash}
+        />
       )}
     </>
   );

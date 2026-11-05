@@ -13,6 +13,7 @@
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "docx": "^9.15.1",
     "jspdf": "^4.2.1",
     "next": "^16.4.4",
     "react": "^19.3.1",

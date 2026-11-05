@@ -41,7 +41,7 @@ Status: green — `tests/test_videos_api.py` and `tests/test_transcripts_api.py`
 
 Component behaviour: search matching, editing, counts, export button states, loading/empty/error rendering.
 
-Status: green for pure logic — 56 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant) and playback sync (`findActiveSegment`) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they are verified manually in the browser. The T1 workspace (player, seek, follow-playback highlight, font size, copy menu, keyboard shortcuts) was verified manually in the browser — Playwright coverage is planned for T6.
+Status: green for pure logic — 66 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering) and playback sync (`findActiveSegment`) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they are verified manually in the browser. The T1 workspace (player, seek, follow-playback highlight, font size, copy menu, keyboard shortcuts) and the T2 export dialog (CSV/DOCX downloads, options, search-results scope, Escape/focus return) were verified manually in the browser — Playwright coverage is planned for T6.
 
 ## F. TypeScript validation
 
@@ -103,7 +103,10 @@ Provider millisecond/offset formats → seconds · monotonic non-negative starts
 | SRT | valid numbering, arrow syntax, comma decimals, blank-line separation |
 | VTT | `WEBVTT` header, dot decimals, cue syntax |
 | Markdown | structure sane, timestamps preserved |
+| CSV | RFC 4180 (CRLF, quoting/doubling), timestamp column toggle, metadata rows |
+| DOCX | ZIP magic `PK`, valid OOXML (opens via `zipfile`), metadata + formatting honoured |
 | PDF | file opens, text readable, non-empty |
+| Options | timestamps off, paragraph grouping at caption gaps, filename override, scope filter (`filterSegments`) |
 | All | user edits reflected; original timestamps preserved |
 
 Validate SRT/VTT against their format rules using fixture transcripts, including the example in [PROJECT.md](PROJECT.md).

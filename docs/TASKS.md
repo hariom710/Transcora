@@ -232,7 +232,11 @@ Owner-approved delivery plan: six tranches, T1 → T6. Protocol revised by owner
   - `[x]` Embedded YouTube IFrame player (script-loaded `iframe_api`, no new dependency): seek from timestamps, duration via `getDuration()`, play/pause and error fallback to the metadata card
   - `[x]` Follow-playback highlight + auto-scroll (`findActiveSegment` binary search in `lib/playback.ts`, reduced-motion aware, scrolls only when off-screen); copy with/without timestamps; A−/A+ font size persisted via localStorage; resizable two-pane (≥1024px, pointer + arrow keys) with sticky video; fullscreen; keyboard shortcuts `/ k j l f`
   - `[x]` Privacy page discloses the embedded player (new third-party contact); 8 new Vitest tests → 56 total; browser-verified (player, seek, highlight, font, copy menu, toast, shortcuts)
-- `[ ]` **T2 — Export expansion**: CSV, DOCX (dependency decision at tranche start), export options dialog (timestamps, metadata, selection, filename, formatting)
+- `[x]` **T2 — Export expansion (2026-11-03)**
+  - `[x]` Dependency decision: `docx` v9.15.1 (MIT) for real .DOCX — real OOXML cannot be hand-rolled within the minimal-code rule
+  - `[x]` CSV (RFC 4180) + DOCX builders; `buildExport` now async; `ExportOptions` (timestamps, metadata header, segment/paragraph formatting, filename) with per-format applicability (SRT/VTT fixed by spec, PDF fixed, MD heading always shown)
+  - `[x]` Export options dialog: format pills, filename input, scope (entire vs current search matches via `filterSegments`), Escape/outside-click close with focus return; menu wired through the dialog; homepage/about copy + format chips updated
+  - `[x]` 10 new Vitest tests → 66 total; browser-verified (CSV 2.8 KB valid content, DOCX `PK` + metadata + paragraphs, scope export = exactly the 38 matching lines, Escape/focus return)
 - `[ ]` **T3 — Productivity**: find-replace, filler-word removal, paragraph/sentence cleanup, highlights, notes, bookmarks, reading mode, undo/redo, statistics
 - `[ ]` **T4 — AI** → Phase 10 above (browser-side key per ADR-009, plus AI speaker labels; verify current Gemini free-tier models first)
 - `[ ]` **T5 — Advanced**: IndexedDB library + recent, import TXT/SRT/VTT/MD, comparison, shareable links (ADR-011), batch + playlist spike (ADR-012), browser extension

@@ -33,7 +33,7 @@ const STEPS = [
   { title: "Export", body: "Download or copy in the format you need." },
 ];
 
-const FORMATS = ["TXT", "SRT", "VTT", "MD", "PDF"];
+const FORMATS = ["TXT", "SRT", "VTT", "MD", "CSV", "DOCX", "PDF"];
 
 const FAQ = [
   {
@@ -50,7 +50,7 @@ const FAQ = [
   },
   {
     q: "What can I do with a transcript?",
-    a: "Search it, jump to timestamps, edit the text, copy it to the clipboard, and export TXT, SRT, VTT, Markdown or PDF.",
+    a: "Search it, jump to timestamps, edit the text, copy it to the clipboard, and export TXT, SRT, VTT, Markdown, CSV, DOCX or PDF.",
   },
   {
     q: "Are my transcripts stored?",

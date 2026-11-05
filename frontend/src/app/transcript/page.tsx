@@ -426,7 +426,11 @@ function Workspace() {
                 {current.language}
               </p>
             )}
-            <TranscriptExport transcript={current} title={video?.title} />
+            <TranscriptExport
+              transcript={current}
+              title={video?.title}
+              matchIds={matches.map((match) => match.segmentId)}
+            />
           </div>
         </section>
       </div>

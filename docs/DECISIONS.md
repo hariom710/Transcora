@@ -69,10 +69,10 @@ New architectural changes are recorded here — never made silently. The origina
 
 - **Status:** Accepted
 - **Context:** Export formats are deterministic transformations of data already held client-side.
-- **Decision:** Generate TXT, SRT, VTT, Markdown and PDF in the browser.
+- **Decision:** Generate TXT, SRT, VTT, Markdown, CSV, DOCX and PDF in the browser (CSV/DOCX added for V2 tranche T2, November 2026).
 - **Alternatives considered:** backend export endpoints (server cost, transcript leaves the browser, extra latency).
-- **Consequences:** No server load, works offline after load, exports reflect current edits. PDF generation adds a client dependency — weigh against the minimal-dependency rule before adding one.
-- **Date:** November 2026 (specification).
+- **Consequences:** No server load, works offline after load, exports reflect current edits. Two client dependencies serve this: `jspdf` (PDF) and `docx` v9.15.1, MIT (real .DOCX — a ZIP/OOXML package cannot be hand-rolled within the minimal-code rule).
+- **Date:** November 2026 (specification; CSV/DOCX decision 2026-11-03).
 
 ## ADR-008 — Gemini integration in Version 2
 

@@ -142,7 +142,7 @@ API error response:
 
 ## H. Export architecture — Confirmed
 
-Client-side builders in `frontend/src/lib/`: `toTxt`, `toSrt`, `toVtt`, `toMarkdown`, `toPdf`. Each takes the normalized `Transcript` plus current edits and returns a `Blob`/string. Server is uninvolved.
+Client-side builders in `frontend/src/lib/export.ts`: `toTxt`, `toSrt`, `toVtt`, `toMarkdown`, `toCsv`, `toDocx`, `toPdf`, plus `buildExport` (async dispatcher returning `{ blob, filename }`) and `filterSegments` (scope: entire transcript vs current search matches). Each takes the normalized `Transcript` plus current edits and `ExportOptions` (timestamps, metadata header, segment/paragraph formatting, filename) and returns a `Blob`/string. Server is uninvolved.
 
 ## I. Gemini integration — Proposed, Phase 10
 
