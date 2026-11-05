@@ -41,7 +41,7 @@ Status: green — `tests/test_videos_api.py` and `tests/test_transcripts_api.py`
 
 Component behaviour: search matching, editing, counts, export button states, loading/empty/error rendering.
 
-Status: green for pure logic — 83 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering), playback sync (`findActiveSegment`) and productivity tools (fillers, cleanup, replace, bulk transform, undo/redo reducer) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they were verified manually in the browser up to T2 — from T3 on the agent's browser tooling was removed (2026-11-05), so T3 was verified via lint/tsc/Pytest/`next build`/HTTP smoke only. Playwright coverage is planned for T6.
+Status: green for pure logic — 92 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering), playback sync (`findActiveSegment`), productivity tools (fillers, cleanup, replace, bulk transform, undo/redo reducer) and the Gemini client (feature prompts, context truncation, error mapping, response extraction, speaker-label parse/apply) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they were verified manually in the browser up to T2 — from T3 on the agent's browser tooling was removed (2026-11-05), so T3 was verified via lint/tsc/Pytest/`next build`/HTTP smoke only. Browser tooling was restored before T4, which was verified interactively (see §R). Playwright coverage is planned for T6.
 
 ## F. TypeScript validation
 
@@ -129,14 +129,16 @@ See [SECURITY.md](SECURITY.md) §B–§E, §L, §N–§O.
 
 ## R. Gemini integration tests (Phase 10)
 
-| Case | Expected |
-|---|---|
-| Missing API key | AI controls disabled, app fully usable |
-| Invalid API key | clear message, no crash |
-| Quota exceeded | clear message, retry guidance |
-| Request failure / timeout | safe error, transcript untouched |
-| Very long transcript | graceful handling, no silent truncation without notice |
-| Model response malformed | validated before display |
+| Case | Expected | Status |
+|---|---|---|
+| Missing API key | AI controls disabled, app fully usable | `[x]` live browser check + `generateContent` missing-key unit test (no network call) |
+| Invalid API key | clear message, no crash | `[x]` live browser check (400 → "Google rejected that API key.") + `mapHttpError` unit tests |
+| Quota exceeded | clear message, retry guidance | `[x]` unit test (429 → quota message) |
+| Request failure / timeout | safe error, transcript untouched | `[x]` unit tests (network/timeout mapping; response bodies never leak into messages) |
+| Very long transcript | graceful handling, no silent truncation without notice | `[x]` unit test (loud truncation notice past 400k chars) + truncation chip in the panel |
+| Model response malformed | validated before display | `[x]` unit tests (`extractText`, `parseLabels` reject malformed/empty payloads) |
+| Valid key end-to-end | summaries generate in the browser | `[x]` live check — real Gemini 200 responses observed, plain-text output rendered |
+| Key never leaves the browser | no request to our backend | `[x]` network inspection — only `generativelanguage.googleapis.com` calls; memory-only default, opt-in persistence, Forget key verified live |
 
 Key never appears in logs or in any request to our backend.
 

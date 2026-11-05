@@ -144,18 +144,17 @@ API error response:
 
 Client-side builders in `frontend/src/lib/export.ts`: `toTxt`, `toSrt`, `toVtt`, `toMarkdown`, `toCsv`, `toDocx`, `toPdf`, plus `buildExport` (async dispatcher returning `{ blob, filename }`) and `filterSegments` (scope: entire transcript vs current search matches). Each takes the normalized `Transcript` plus current edits and `ExportOptions` (timestamps, metadata header, segment/paragraph formatting, filename) and returns a `Blob`/string. Server is uninvolved.
 
-## I. Gemini integration — Proposed, Phase 10
+## I. Gemini integration — Confirmed (Phase 10, T4)
 
 ```
-Transcript → AI module → Gemini API client → Gemini model
-                                      ├─ Summary
-                                      ├─ Smart Notes
-                                      ├─ Chapters
-                                      ├─ Key Points
-                                      └─ Questions & Answers
+Transcript → AI module (transcript-ai.tsx) → lib/gemini.ts → Gemini API (direct, browser fetch)
+                                                    ├─ Summary · Key Points · Smart Notes
+                                                    ├─ Chapters · Topics · Learning Notes
+                                                    ├─ Ask this video (chat)
+                                                    └─ Speaker labels → [Speaker] prefixes (undoable edit)
 ```
 
-Runs in the browser against the user's own key. See [SECURITY.md](SECURITY.md) §H.
+Runs entirely in the browser against the user's own key: `x-goog-api-key` header sent straight to `generativelanguage.googleapis.com`, never to our backend (ADR-009). Model: `gemini-3.6-flash` (free tier without billing, verified 2026-11-05). Key is memory-only unless the user opts in to "Remember", with a visible "Forget key" action. Context capped at 400k chars with a loud truncation notice; responses validated before display, rendered as plain text only. See [SECURITY.md](SECURITY.md) §H.
 
 ## J. Environment configuration — Confirmed for Version 1; `DATABASE_URL` Proposed (V2)
 

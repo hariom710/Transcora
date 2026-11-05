@@ -188,12 +188,12 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Optional AI features on a user-supplied key.
 **Depends on:** Phase 9. Version 2 — see [PROJECT.md](PROJECT.md) §F.
 
-- `[ ]` Verify current Gemini free-tier models, limits, pricing
-- `[ ]` Optional AI settings section (key entry, explicit opt-in persistence)
-- `[ ]` AI Summary, Smart Notes, Key Points, Chapter Generator
-- `[ ]` Ask This Video, Topic Extraction, Learning Notes
-- `[ ]` Client-side Gemini client — key never reaches our backend
-- `[ ]` Graceful handling of missing/invalid key, quota exhaustion, request failure
+- `[x]` Verify current Gemini free-tier models, limits, pricing (2026-11-05: `gemini-3.6-flash` free without billing; 3.8/3.6 Flash and Flash-Lite free, Gemini 4 Argon paid-only → `GEMINI_MODEL = "gemini-3.6-flash"`)
+- `[x]` Optional AI settings section (key entry, explicit opt-in persistence, visible "Forget key", browser-exposure disclosure)
+- `[x]` AI Summary, Smart Notes, Key Points, Chapter Generator
+- `[x]` Ask This Video, Topic Extraction, Learning Notes
+- `[x]` Client-side Gemini client — key never reaches our backend (`x-goog-api-key` header straight to Google)
+- `[x]` Graceful handling of missing/invalid key, quota exhaustion, request failure (distinct `AiFailure` kinds, unit-tested; invalid-key verified live)
 
 **Deliverables:** AI module behind an explicit user action.
 **Acceptance criteria:** with a valid key, summaries generate; with no key, the app behaves exactly as before.
@@ -243,7 +243,10 @@ Owner-approved delivery plan: six tranches, T1 → T6. Protocol revised by owner
   - `[x]` Reading mode (`r` or toolbar toggle: video hidden, single centred column); undo/redo (`use-edit-history` reducer, 50-step stack, Ctrl/Cmd+Z, Shift+Z or Y) with toolbar buttons
   - `[x]` Statistics extended with reading time (200 wpm) + highlight/note/bookmark counts
   - `[x]` 17 new Vitest tests → 83 total; verification via lint/tsc/Pytest/`next build`/HTTP 200 smoke — browser tooling was removed from the agent environment on 2026-11-05, so no interactive browser pass was possible for this tranche
-- `[ ]` **T4 — AI** → Phase 10 above (browser-side key per ADR-009, plus AI speaker labels; verify current Gemini free-tier models first)
+- `[x]` **T4 — AI (2026-11-05)** → Phase 10 above (browser-side key per ADR-009, plus AI speaker labels)
+  - `[x]` `lib/gemini.ts`: free-tier model verified (2026-11-05 → `gemini-3.6-flash`), feature prompts, transcript context with loud 400k-char truncation, error mapping, response extraction (thought parts skipped), JSON speaker-label parse/apply
+  - `[x]` `transcript-ai.tsx` modal: password key entry, session-only by default, remember opt-in + Forget key, SECURITY §H disclosure, feature pills, plain-text output, Ask-this-video chat, speaker labels applied as one undoable edit step
+  - `[x]` Verified in browser: disabled-without-key + disclosure, Escape close, password/autocomplete-off, real 200 generation flow, live invalid-key error, Forget key clearing storage; 9 new Vitest tests → 92 total
 - `[ ]` **T5 — Advanced**: IndexedDB library + recent, import TXT/SRT/VTT/MD, comparison, shareable links (ADR-011), batch + playlist spike (ADR-012), browser extension
 - `[ ]` **T6 — Release** → Phase 11 above (plus Playwright E2E, large-transcript profiling, dependency audit, sitemap/SEO, PWA) — usage analytics deliberately skipped, owner decision 2026-11-03 (privacy-first)
 

@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { TranscriptAi } from "@/components/transcript-ai/transcript-ai";
 import { TranscriptExport } from "@/components/transcript-export/transcript-export";
 import { TranscriptSearch } from "@/components/transcript-search/transcript-search";
 import { TranscriptViewer } from "@/components/transcript-viewer/transcript-viewer";
@@ -71,6 +72,7 @@ function Workspace() {
   const [bookmarks, setBookmarks] = useState<ReadonlySet<number>>(new Set());
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [readingMode, setReadingMode] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [toolNotice, setToolNotice] = useState<string | null>(null);
   const toolTimer = useRef<number>(0);
 
@@ -525,6 +527,15 @@ function Workspace() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setAiOpen(true)}
+            title="AI features — runs on your own Gemini key, browser-side"
+          >
+            ✨ AI
+          </Button>
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => jumpBookmark(-1)}
             disabled={bookmarks.size === 0}
             aria-label="Previous bookmark"
@@ -636,6 +647,20 @@ function Workspace() {
           </div>
         </section>
       </div>
+
+      {aiOpen && (
+        <TranscriptAi
+          transcript={current}
+          title={video?.title}
+          onClose={() => setAiOpen(false)}
+          onApplyLabels={(changes) => {
+            commit({ ...edits, ...changes });
+            flashTool(
+              `Speaker labels applied to ${Object.keys(changes).length} segments (Ctrl+Z to undo).`,
+            );
+          }}
+        />
+      )}
 
       {toolNotice && (
         <div

@@ -20,7 +20,7 @@ Students · developers · researchers · content creators · teachers · journal
 - Automatic caption retrieval with language selection.
 - Timestamped display, search, editing, copy and multi-format export.
 - Clean responsive interface, zero registration.
-- Later: optional Gemini-powered AI features.
+- Optional Gemini-powered AI features on a user-supplied key (built in T4).
 
 ## E. Functional requirements — Version 1
 
@@ -41,7 +41,7 @@ https://www.youtube.com/shorts/VIDEO_ID
 
 **UX:** minimal homepage · responsive · light and dark modes · loading progress · success and error notifications · optional local recent history · no mandatory registration · no popups · accessible keyboard navigation.
 
-## F. Version 2 AI requirements — planned, not built
+## F. Version 2 AI requirements — built (T4, Phase 10)
 
 AI Summary · Smart Notes · Key Points · Chapter Generator · Ask This Video · Topic Extraction · Learning Notes · AI speaker labels and separation (AI-generated, clearly labelled in the UI).
 
@@ -91,7 +91,7 @@ Two former exclusions are now accepted with constraints: a database limited to s
 | 7 | Transcript productivity tools | Search/find-replace, highlight, editing, fillers/cleanup, copy, notes, bookmarks, reading mode, undo/redo, counts + reading time |
 | 8 | Export and download system | TXT, SRT, VTT, Markdown, CSV, DOCX, PDF + options dialog (timestamps, metadata, scope, filename, formatting) |
 | 9 | Testing, security and performance | Full suites, hardening, large-transcript profiling |
-| 10 | Gemini AI integration | AI summaries, notes, chapters, Q&A |
+| 10 | Gemini AI integration | AI summaries, notes, chapters, Q&A, speaker labels (browser-side, user key) |
 | 11 | Deployment and final release | Production deploy, verification, launch |
 
 ### Version 2 tranches (approved 2026-11-03)
