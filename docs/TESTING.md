@@ -2,7 +2,7 @@
 
 How correctness is proven. Progress: [TASKS.md](TASKS.md). Rules: [AGENTS.md](../AGENTS.md) §F.
 
-> **Status (2026-11-03):** Version 1 suites exist and are green — 37 backend tests (Pytest) and 48 frontend tests (Vitest), plus clean `eslint`, `tsc --noEmit` and `next build` (recorded in [TASKS.md](TASKS.md) Phase 9). Playwright is not installed; E2E flows were verified manually in a browser. Sections §U–§V specify tests for Version 2 features that do not exist yet. **Never record a result here that was not actually observed.**
+> **Status (2026-11-05):** Suites are green — 48 backend tests (Pytest) and 114 frontend tests (Vitest), plus clean `eslint`, `tsc --noEmit` and `next build` (recorded in [TASKS.md](TASKS.md)). Playwright is not installed; E2E flows were verified manually in a browser (T4, T5). Sections §U–§V cover Version 2 features; their status columns record what was actually run. **Never record a result here that was not actually observed.**
 
 ## A. Testing philosophy
 
@@ -41,7 +41,7 @@ Status: green — `tests/test_videos_api.py` and `tests/test_transcripts_api.py`
 
 Component behaviour: search matching, editing, counts, export button states, loading/empty/error rendering.
 
-Status: green for pure logic — 92 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering), playback sync (`findActiveSegment`), productivity tools (fillers, cleanup, replace, bulk transform, undo/redo reducer) and the Gemini client (feature prompts, context truncation, error mapping, response extraction, speaker-label parse/apply) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they were verified manually in the browser up to T2 — from T3 on the agent's browser tooling was removed (2026-11-05), so T3 was verified via lint/tsc/Pytest/`next build`/HTTP smoke only. Browser tooling was restored before T4, which was verified interactively (see §R). Playwright coverage is planned for T6.
+Status: green for pure logic — 114 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering), playback sync (`findActiveSegment`), productivity tools (fillers, cleanup, replace, bulk transform, undo/redo reducer), the Gemini client (feature prompts, context truncation, error mapping, response extraction, speaker-label parse/apply) and the T5 logic (TXT/SRT/VTT/MD importers, line diff, batch runner, share API client + consent gate) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they were verified manually in the browser up to T2 — from T3 on the agent's browser tooling was removed (2026-11-05), so T3 was verified via lint/tsc/Pytest/`next build`/HTTP smoke only. Browser tooling was restored before T4, which was verified interactively (see §R); T5 was likewise verified interactively (share lifecycle, library save/reload/open/remove, import, compare, batch — see §U/§V). The IndexedDB library (`lib/library.ts`) has no unit tests — node has no IndexedDB and adding `fake-indexeddb` was rejected as a dependency; its flows were verified live in the browser instead. Playwright coverage is planned for T6.
 
 ## F. TypeScript validation
 
@@ -165,37 +165,42 @@ Aligned with this environment: **Windows 10/11, Node 22, Python 3.13, Git**. No 
 | Frontend dev | `npm run dev` | runnable |
 | Type check | `npx tsc --noEmit` | green |
 | Lint | `npm run lint` | green |
-| Frontend tests | `npm test` | green (48) |
+| Frontend tests | `npm test` | green (114) |
 | Frontend build | `npm run build` | green |
 | Backend dev | `uvicorn app.main:app --reload` | runnable |
-| Backend tests | `pytest -q` | green (37) |
+| Backend tests | `pytest -q` | green (48) |
 | Targeted test | `pytest tests/test_url_parser.py -q` | runnable |
 | E2E | `npx playwright test` | not installed — planned for T6 |
 
 These match the project's actual configuration. Update this table if the configuration differs — document only commands the real configuration supports.
 
-## U. Share link tests (V2, ADR-011) — not yet runnable
+## U. Share link tests (V2, ADR-011) — runnable; executed 2026-11-05
 
-| Case | Expected |
-|---|---|
-| Create share | returns share URL + one-time delete token; stored payload round-trips byte-identical, unicode preserved |
-| Token properties | tokens unique and unpredictable across many generations; database stores SHA-256 hashes only, never raw tokens |
-| Fetch valid share | normalized `Transcript` shape, same contract as extraction |
-| Unknown vs expired token | identical safe 404 for both — no enumeration oracle |
-| Delete wrong token | rejected safely; correct token removes the row immediately |
-| Oversized payload | 413, safe error, nothing stored |
-| Creation flood | 429 with `Retry-After` once the share-specific bucket is exhausted |
-| Logging | no transcript content and no full share/delete token in any log record (`caplog` assertion) |
-| Expiry purge | rows past `expires_at` removed; reads after expiry fail safely |
-| Consent UI | sharing impossible without the explicit disclosure action (frontend test) |
+| Case | Expected | Status |
+|---|---|---|
+| Create share | returns share URL + one-time delete token; stored payload round-trips byte-identical, unicode preserved | `[x]` `test_create_and_fetch_roundtrip` (11 tests in `test_shares_api.py`) + live browser create |
+| Token properties | tokens unique and unpredictable across many generations; database stores SHA-256 hashes only, never raw tokens | `[x]` `test_tokens_unique_and_only_hashes_stored` |
+| Fetch valid share | normalized `Transcript` shape, same contract as extraction | `[x]` roundtrip test + `/s/[token]` rendered all 61 segments in the browser |
+| Unknown vs expired token | identical safe 404 for both — no enumeration oracle | `[x]` `test_unknown_and_expired_token_identical_404` + live check (deleted and unknown 404 bodies byte-identical) |
+| Delete wrong token | rejected safely; correct token removes the row immediately | `[x]` `test_delete_requires_correct_token_and_removes_row` + live delete → 200 then 404 |
+| Oversized payload | 413, safe error, nothing stored | `[x]` `test_oversized_body_rejected_and_nothing_stored` (1 MiB path-aware cap) |
+| Field caps | segment-count / text-length caps rejected | `[x]` `test_field_caps_rejected` |
+| Creation flood | 429 with `Retry-After` once the share-specific bucket is exhausted | `[x]` `test_creation_flood_429_with_retry_after` |
+| Logging | no transcript content and no full share/delete token in any log record (`caplog` assertion) | `[x]` `test_logging_carries_metadata_only` |
+| Expiry purge | rows past `expires_at` removed; reads after expiry fail safely | `[x]` `test_expired_rows_purged_by_lazy_sweep` |
+| Sharing disabled without `DATABASE_URL` | 503 `SHARES_UNAVAILABLE`, feature off | `[x]` `test_shares_disabled_without_database_url` |
+| Consent UI | sharing impossible without the explicit disclosure action (frontend test) | `[x]` `createShare` consent-gate Vitest test; live: Create stayed disabled until the checkbox was checked |
+| Share page indexing | `noindex` meta + robots exclusion | `[x]` live: `meta robots=noindex,nofollow`; `robots.txt` = `Disallow: /s/` |
+| JSON content type | application/json contract on create | `[x]` `test_json_content_type_shape` |
 
-## V. Batch and playlist tests (V2, ADR-012) — not yet runnable
+## V. Batch and playlist tests (V2, ADR-012) — executed 2026-11-05
 
-| Case | Expected |
-|---|---|
-| Batch of valid URLs | per-item results in order; extraction calls sequential with delay (mock provider, assert call sequence) |
-| Partial failure | one caption-less video → that item errors while others succeed; no mixed or silent transcript |
-| Batch over cap | more than 20 items rejected before any extraction |
-| Rate budget | batch counts against the same per-IP limit; mid-batch 429 surfaces as a per-item error |
-| Playlist spike fixtures | chosen method's responses mocked per §H; every enumerated ID re-validated against `^[A-Za-z0-9_-]{11}$` |
-| Playlist unsupported | clear structured error; the rest of the app remains usable |
+| Case | Expected | Status |
+|---|---|---|
+| Batch of valid URLs | per-item results in order; extraction calls sequential with delay | `[x]` `lib/batch.ts` Vitest (mock fetch, call order/delay); live browser run: 2 URLs → "2 ok · 0 failed", both Open links worked |
+| Partial failure | one failing item errors while others succeed; no mixed or silent transcript | `[x]` `lib/batch.ts` unit test |
+| Batch over cap | more than 20 items rejected before any extraction | `[x]` `lib/batch.ts` unit test (`BATCH_MAX`) + cap warning in the UI |
+| Cancel | running batch stops before the next item | `[x]` `lib/batch.ts` unit test ("stops cleanly when cancelled"); Cancel button present in UI |
+| Rate budget | mid-batch 429 surfaces as that item's error | `[x]` `lib/batch.ts` unit test ("surfaces a mid-batch rate limit as that item's error") |
+| Playlist spike fixtures | chosen method's responses mocked per §H; every enumerated ID re-validated against `^[A-Za-z0-9_-]{11}$` | `[x]` spike run 2026-11-05 (`backend/scripts/playlist_spike.py`): 54 unique valid ids, 0 invalid — Innertube viable, ToS-sensitive, owner review pending |
+| Playlist unsupported (UI) | clear structured error; the rest of the app remains usable | `[x]` no playlist UI ships in T5 (spike only) — nothing to break; batch works independently |

@@ -19,6 +19,9 @@ coverage/
 playwright-report/
 test-results/
 
+# local databases — dev share store, never committed (ADR-011)
+*.db
+
 # editors / OS
 .vscode/
 .idea/

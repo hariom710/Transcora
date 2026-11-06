@@ -13,7 +13,9 @@ import {
 import { useSearchParams } from "next/navigation";
 
 import { TranscriptAi } from "@/components/transcript-ai/transcript-ai";
+import { CompareDialog } from "@/components/transcript-compare/compare-dialog";
 import { TranscriptExport } from "@/components/transcript-export/transcript-export";
+import { ShareDialog } from "@/components/transcript-share/share-dialog";
 import { TranscriptSearch } from "@/components/transcript-search/transcript-search";
 import { TranscriptViewer } from "@/components/transcript-viewer/transcript-viewer";
 import { VideoPlayer, type PlayerCommand } from "@/components/video-player/video-player";
@@ -23,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useEditHistory } from "@/hooks/use-edit-history";
 import { FONT_SIZES, useFontSize } from "@/hooks/use-font-size";
 import { cn } from "@/lib/cn";
+import { getStored, recordRecent, saveTranscript } from "@/lib/library";
 import { findActiveSegment } from "@/lib/playback";
 import {
   bulkTransform,
@@ -54,7 +57,11 @@ interface LoadResult {
 function Workspace() {
   const params = useSearchParams();
   const url = params.get("url") ?? "";
-  const videoId = parseVideoId(url);
+  // T5: ?saved=<id> opens a transcript from the browser-local library instead
+  // of the backend; urlVideoId stays null for that path.
+  const savedId = params.get("saved") ?? "";
+  const urlVideoId = parseVideoId(url);
+  const videoId = savedId || urlVideoId;
 
   const [video, setVideo] = useState<Video | null>(null);
   const [languages, setLanguages] = useState<LanguageInfo[]>([]);
@@ -73,6 +80,8 @@ function Workspace() {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [readingMode, setReadingMode] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [toolNotice, setToolNotice] = useState<string | null>(null);
   const toolTimer = useRef<number>(0);
 
@@ -95,12 +104,30 @@ function Workspace() {
 
   // Identifies which request a stored result belongs to. Changing it returns the
   // UI to loading without calling setState synchronously inside the effect.
-  const requestKey = `${url}|${language}|${attempt}`;
+  const requestKey = savedId ? `saved|${savedId}` : `${url}|${language}|${attempt}`;
 
   useEffect(() => {
     if (!videoId) return;
     let cancelled = false;
-    extractTranscript(url, language || undefined)
+    // T5: saved transcripts load from the browser-local library — no backend
+    // call, no URL needed (ADR-004 browser-local storage).
+    const load = savedId
+      ? getStored(savedId).then((entry) => {
+          if (entry) {
+            setVideo({
+              id: entry.id,
+              url: "",
+              title: entry.title,
+              channel: entry.channel,
+              thumbnail_url: entry.thumbnail_url,
+              duration: null,
+            });
+            return entry.transcript;
+          }
+          throw new Error("This transcript is not in your browser's library.");
+        })
+      : extractTranscript(url, language || undefined);
+    load
       .then((value) => {
         if (!cancelled) setResult({ key: requestKey, transcript: value, error: "" });
       })
@@ -112,13 +139,15 @@ function Workspace() {
           error:
             cause instanceof ApiFailure
               ? cause.message
-              : "Something went wrong. Please try again.",
+              : cause instanceof Error
+                ? cause.message
+                : "Something went wrong. Please try again.",
         });
       });
     return () => {
       cancelled = true;
     };
-  }, [url, videoId, language, attempt, requestKey]);
+  }, [url, videoId, savedId, language, attempt, requestKey]);
 
   const loaded = result !== null && result.key === requestKey ? result : null;
   const transcript = loaded?.transcript ?? null;
@@ -132,7 +161,8 @@ function Workspace() {
   const error = loaded?.error ?? "";
 
   useEffect(() => {
-    if (!videoId) return;
+    // Saved transcripts carry their own metadata — no backend calls (ADR-004).
+    if (savedId || !videoId) return;
     let cancelled = false;
     // Metadata and language lists are best effort — never block the transcript.
     inspectVideo(url)
@@ -144,7 +174,13 @@ function Workspace() {
     return () => {
       cancelled = true;
     };
-  }, [url, videoId]);
+  }, [url, videoId, savedId]);
+
+  // T5: every opened transcript is recorded in the browser-local recent list.
+  useEffect(() => {
+    if (!transcript) return;
+    recordRecent(transcript, video?.title ?? null).catch(() => undefined);
+  }, [loaded, transcript, video?.title]);
 
   const current = useMemo<Transcript | null>(() => {
     if (!transcript) return null;
@@ -422,21 +458,24 @@ function Workspace() {
             onReplacementChange={setReplacement}
             onReplaceAll={handleReplaceAll}
           />
-          <label className="flex shrink-0 items-center gap-2 text-caption text-muted-fg">
-            Language
-            <select
-              value={language}
-              onChange={(event) => setLanguage(event.target.value)}
-              className="h-11 rounded-md border border-border bg-background px-2 text-caption text-foreground sm:h-9"
-            >
-              <option value="">Default</option>
-              {languages.map((item) => (
-                <option key={item.code} value={item.code}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* Saved transcripts carry a fixed language — no backend list to pick from. */}
+          {!savedId && (
+            <label className="flex shrink-0 items-center gap-2 text-caption text-muted-fg">
+              Language
+              <select
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+                className="h-11 rounded-md border border-border bg-background px-2 text-caption text-foreground sm:h-9"
+              >
+                <option value="">Default</option>
+                {languages.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <div className="flex shrink-0 items-center gap-1">
             <Button
               variant="ghost"
@@ -531,6 +570,14 @@ function Workspace() {
             title="AI features — runs on your own Gemini key, browser-side"
           >
             ✨ AI
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCompareOpen(true)}
+            title="Compare this transcript against an imported text file"
+          >
+            Compare
           </Button>
           <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
           <Button
@@ -639,14 +686,44 @@ function Workspace() {
                 {bookmarks.size > 0 && <> · ★ {bookmarks.size} bookmarked</>}
               </p>
             )}
-            <TranscriptExport
-              transcript={current}
-              title={video?.title}
-              matchIds={matches.map((match) => match.segmentId)}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (!current) return;
+                  saveTranscript({
+                    id: current.video_id,
+                    title: video?.title || current.video_id,
+                    channel: video?.channel ?? null,
+                    thumbnail_url: video?.thumbnail_url ?? null,
+                    language: current.language,
+                    saved_at: Date.now(),
+                    transcript: current,
+                  })
+                    .then(() => flashTool("Saved to your library."))
+                    .catch(() => flashTool("Could not save — this browser blocks local storage."));
+                }}
+                title="Keep this transcript in your browser's library"
+              >
+                ★ Save
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShareOpen(true)}>
+                Share
+              </Button>
+              <TranscriptExport
+                transcript={current}
+                title={video?.title}
+                matchIds={matches.map((match) => match.segmentId)}
+              />
+            </div>
           </div>
         </section>
       </div>
+
+      {shareOpen && <ShareDialog transcript={current} onClose={() => setShareOpen(false)} />}
+
+      {compareOpen && <CompareDialog transcript={current} onClose={() => setCompareOpen(false)} />}
 
       {aiOpen && (
         <TranscriptAi

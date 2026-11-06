@@ -1,7 +1,9 @@
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 
+from app.core.config import settings
 from app.services import transcript_service
 from app.services.providers.base import LanguageInfo, RawTranscript
 
@@ -34,3 +36,11 @@ def use_provider(
         return provider
 
     return _use
+
+
+@pytest.fixture
+def share_db(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """Points the share store at a throwaway SQLite file for one test."""
+    db_path = tmp_path / "shares.db"
+    monkeypatch.setattr(settings, "database_url", f"sqlite:///{db_path}")
+    return db_path

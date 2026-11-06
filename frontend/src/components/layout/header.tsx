@@ -8,6 +8,8 @@ import { useTheme } from "@/hooks/use-theme";
 
 const LINKS = [
   { href: "/", label: "Transcript" },
+  { href: "/library", label: "Library" },
+  { href: "/batch", label: "Batch" },
   { href: "/#features", label: "Features" },
   { href: "/about", label: "About" },
   { href: "/privacy", label: "Privacy" },

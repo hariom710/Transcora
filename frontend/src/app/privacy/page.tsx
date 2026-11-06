@@ -6,8 +6,12 @@ const PRINCIPLES = [
     body: "There is no registration and no login, so we never hold personal details.",
   },
   {
-    title: "No transcript storage",
-    body: "Transcripts stay in your browser. They are not written to a database.",
+    title: "No transcript storage by default",
+    body: "Transcripts stay in your browser — in page memory and, if you save them, in this browser's local library (IndexedDB). They are not written to a server database unless you explicitly publish one as a shareable link.",
+  },
+  {
+    title: "Shareable links are public",
+    body: "When you create a share link, that one transcript is stored on our server so anyone with the link can read it. It expires automatically after 30 days, and a one-time delete token (shown once at creation) removes it immediately. We store only a hash of the link token and the transcript itself — no account, no creator identity. Creation is rate-limited and share pages are excluded from search engines.",
   },
   {
     title: "Embedded video player",
@@ -22,8 +26,8 @@ const PRINCIPLES = [
     body: "Server logs record metadata such as status codes — not full transcript contents.",
   },
   {
-    title: "No API keys in Version 1",
-    body: "The core product stores no third-party API keys.",
+    title: "No API keys of ours",
+    body: "The core product uses no third-party API keys. Optional AI features use your own Gemini key, which stays in your browser and is sent only to Google's API — never to our servers.",
   },
 ];
 
@@ -44,8 +48,10 @@ export default function PrivacyPage() {
         ))}
       </ul>
       <p className="text-body-sm text-muted-fg">
-        Optional AI features planned for a later version will use your own API key, handled in
-        your browser. That key would never be sent to our servers.
+        AI features are optional and off until you add a free Gemini key. The key is kept in this
+        browser only (session-only by default, or remembered if you opt in with a visible
+        &quot;Forget key&quot; action) and is sent directly to Google&apos;s API — it never reaches
+        our servers.
       </p>
     </article>
   );

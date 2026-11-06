@@ -21,7 +21,7 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 - `[x]` Scaffold FastAPI backend
   - `[x]` `app/` structure per [ARCHITECTURE.md](ARCHITECTURE.md) §C
   - `[x]` Pydantic Settings, `.env.example`
-- `[~]` Test harness: Pytest configured and green (37 tests); Playwright not installed — E2E so far done manually in a browser
+- `[~]` Test harness: Pytest configured and green (48 tests as of T5); Playwright not installed — E2E so far done manually in a browser
 - `[x]` `GET /health` returns 200 (verified live and covered by a test)
 
 **Deliverables:** two runnable services, `npm run dev` and `uvicorn app.main:app`.
@@ -137,7 +137,7 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 - `[x]` Copy all / copy segment / select all
 - `[x]` Character, word and segment counts
 - `[x]` Auto-scroll to active segment
-- `[ ]` Optional local recent-history — deferred: optional, privacy-first; not implemented until requested
+- `[x]` Local recent-history — built in T5 (`recordRecent` in `lib/library.ts`, browser-local Recent list on `/library`, privacy-first per ADR-004)
 
 **Deliverables:** search and editing controls in the workspace.
 **Acceptance criteria:** searching finds and highlights matches; edits persist in session state.
@@ -247,7 +247,15 @@ Owner-approved delivery plan: six tranches, T1 → T6. Protocol revised by owner
   - `[x]` `lib/gemini.ts`: free-tier model verified (2026-11-05 → `gemini-3.6-flash`), feature prompts, transcript context with loud 400k-char truncation, error mapping, response extraction (thought parts skipped), JSON speaker-label parse/apply
   - `[x]` `transcript-ai.tsx` modal: password key entry, session-only by default, remember opt-in + Forget key, SECURITY §H disclosure, feature pills, plain-text output, Ask-this-video chat, speaker labels applied as one undoable edit step
   - `[x]` Verified in browser: disabled-without-key + disclosure, Escape close, password/autocomplete-off, real 200 generation flow, live invalid-key error, Forget key clearing storage; 9 new Vitest tests → 92 total
-- `[ ]` **T5 — Advanced**: IndexedDB library + recent, import TXT/SRT/VTT/MD, comparison, shareable links (ADR-011), batch + playlist spike (ADR-012), browser extension
+- `[x]` **T5 — Advanced (2026-11-05)**
+  - `[x]` Library (`/library`): IndexedDB store (`lib/library.ts`) with Saved + Recent lists, Open/Remove, `?saved=<id>` loading in the workspace (no backend calls, language select hidden, entry metadata shown)
+  - `[x]` Import TXT/SRT/VTT/MD (`lib/importers.ts`) via the library file picker — imported files get a synthetic 11-char id, `language_code: "und"`, estimated 3s/line timestamps, and an "Imported" badge; auto-opens in the workspace
+  - `[x]` Comparison (`lib/compare.ts`): line diff (LCS with prefix/suffix trim, 4M-cell fallback, 1000-row render cap) in a dialog — stats line + red −/green + markers, fed by a file picker accepting `.txt,.srt,.vtt,.md`
+  - `[x]` Shareable links (ADR-011): backend `sqlite3` store via `DATABASE_URL` (`sqlite:///` only; absent → sharing disabled, 503 `SHARES_UNAVAILABLE`), sync routes, 1 MiB path-aware cap on `POST /api/v1/shares` only; `ShareDialog` consent gate → one-time delete token; read-only `/s/[token]` page (`noindex`, plain-text render); `robots.txt` disallows `/s/`; privacy page disclosures
+  - `[x]` Batch (`/batch`, ADR-012): textarea of ≤ 20 URLs run sequentially through `POST /api/v1/transcripts` with per-item status, Open links, Cancel and partial-failure tolerance
+  - `[x]` Playlist spike (ADR-012): **PASS** (2026-11-05) — `backend/scripts/playlist_spike.py` (Innertube) returned 54 unique valid ids, 0 invalid, first page only; method is ToS-sensitive → owner review required before any playlist UI ships (recorded in ADR-012 change log)
+  - `[x]` Browser extension (`extension/`, smallest useful MV3): `activeTab`-only popup that opens the current YouTube video in `/transcript?url=…`; `APP_ORIGIN` is localhost with a `shortcut:` comment to switch at T6 deploy
+  - `[x]` Verified in browser: consent gate (Create disabled until checked), share create → 30-day expiry → `/s/` renders all segments with `noindex,nofollow`, delete with correct token → 200 then identical 404s (no enumeration oracle), save → library reload → open, SRT import → workspace, compare diff (1 unchanged · 60 removed · 2 added), batch 2 ok/0 failed with working Open links; checkpoint green — lint 0 errors, `tsc` exit 0, Vitest **114**, Pytest **48**, `next build` with all new routes
 - `[ ]` **T6 — Release** → Phase 11 above (plus Playwright E2E, large-transcript profiling, dependency audit, sitemap/SEO, PWA) — usage analytics deliberately skipped, owner decision 2026-11-03 (privacy-first)
 
 Checkpoint protocol after every tranche: `eslint` + `tsc` + Vitest + Pytest + `next build` green → browser verification → docs updated in the same change → commit + push → next tranche (owner review deferred to the end, per owner decision 2026-11-03).

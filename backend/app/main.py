@@ -14,7 +14,7 @@ app = FastAPI(title="Free YouTube Transcript Generator", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -41,7 +41,14 @@ async def request_guard(request: Request, call_next):
         )
 
     length = request.headers.get("content-length")
-    if length and length.isdigit() and int(length) > settings.max_body_bytes:
+    # Share creation carries a transcript, so it gets the larger §N cap (1 MiB);
+    # everything else keeps the strict default.
+    limit = (
+        settings.share_max_body_bytes
+        if request.method == "POST" and request.url.path == "/api/v1/shares"
+        else settings.max_body_bytes
+    )
+    if length and length.isdigit() and int(length) > limit:
         return _error(413, "PAYLOAD_TOO_LARGE", "Request body is too large.")
 
     return await call_next(request)

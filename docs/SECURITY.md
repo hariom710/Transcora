@@ -138,7 +138,7 @@ Mandatory security requirements. Rules: [AGENTS.md](../AGENTS.md) · Architectur
 
 ## N. Shareable transcript security (V2, ADR-011)
 
-Binding when the feature is built; not implemented yet. Requirements below are the acceptance criteria for T5.
+Implemented and verified in T5 (2026-11-05); the controls below were the acceptance criteria and are now the binding spec.
 
 | Control | Requirement |
 |---|---|
@@ -152,6 +152,8 @@ Binding when the feature is built; not implemented yet. Requirements below are t
 | Abuse control | Creation requires a valid extracted transcript first — the endpoint is not a free-form dump. Shared content is untrusted (§F applies to the read view). The feature must be disableable by configuration if abused. |
 
 ## O. Bulk extraction security (V2, ADR-012)
+
+Batch implemented in T5 under these rules; the playlist clause stays binding for any future playlist UI.
 
 - Batch submissions capped at 20 videos; playlist results capped likewise. Sequential extraction with an inter-request delay and a bounded overall timeout.
 - One shared per-IP rate budget across the whole batch — a batch must never become a rate-limit loophole.

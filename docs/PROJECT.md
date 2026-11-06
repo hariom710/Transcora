@@ -76,7 +76,7 @@ Speech-to-text for caption-less videos is explicitly out of scope — it needs s
 
 User accounts · authentication · payments · video/audio upload · audio transcription · bypassing YouTube access controls · desktop app · mobile app.
 
-Two former exclusions are now accepted with constraints: a database limited to shareable transcripts and their lifecycle ([ADR-011](DECISIONS.md)), and multi-video batching plus playlist extraction ([ADR-012](DECISIONS.md) — playlist support contingent on its feasibility spike).
+Two former exclusions are now accepted with constraints: a database limited to shareable transcripts and their lifecycle ([ADR-011](DECISIONS.md)), and multi-video batching plus playlist extraction ([ADR-012](DECISIONS.md) — batch built in T5; the playlist feasibility spike passed on 2026-11-05 but playlist UI stays unshipped until the owner approves the ToS-sensitive method).
 
 ## K. Roadmap — 11 phases
 

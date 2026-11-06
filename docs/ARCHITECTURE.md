@@ -4,7 +4,7 @@ Authoritative source for **how the system is structured**. Requirements: [PROJEC
 
 > **Status legend** — **Confirmed:** implemented and verified in this repository. **Proposed:** designed but not yet implemented.
 >
-> **Repository state (2026-11-03):** Version 1 is built, tested and verified (see [TASKS.md](TASKS.md)). Items are **Confirmed** unless their title says **Proposed** — those are Version 2 designs (share storage, batch/playlist, AI, deployment) that do not exist yet. Do not document a path or module as existing until it does.
+> **Repository state (2026-11-05):** Version 1 is built, tested and verified; T1–T5 of the V2 roadmap are built (workspace, export, productivity, AI, advanced features — see [TASKS.md](TASKS.md)). Items are **Confirmed** unless their title says **Proposed** — those are designs that do not exist yet (deployment). Do not document a path or module as existing until it does.
 
 ## A. High-level architecture
 
@@ -26,7 +26,7 @@ Two services, one contract: the backend returns a provider-independent transcrip
 frontend/
 ├── public/
 └── src/
-    ├── app/                 # App Router pages: layout, page, transcript, about, privacy
+    ├── app/                 # App Router pages: layout, page, transcript, library, batch, s/[token] (share view), robots.ts, about, privacy
     ├── components/
     │   ├── layout/           # Header, footer, theme toggle
     │   ├── url-input/        # URL form + validation feedback
@@ -35,15 +35,22 @@ frontend/
     │   ├── transcript-viewer/# Timestamped segment list + playback highlight
     │   ├── transcript-search/# Search + highlight
     │   ├── transcript-export/# Export controls
+    │   ├── transcript-share/ # Share dialog + read-only share view (T5)
+    │   ├── transcript-compare/# File-vs-transcript diff dialog (T5)
     │   └── ui/               # shadcn/ui primitives
     ├── hooks/                # useTheme, useFontSize, useEditHistory (search/edit state lives in the workspace page)
-    ├── lib/                  # URL helpers, formatters, export builders, playback sync (binary search), productivity tools
-    ├── services/             # API client
-    └── types/                # Video, Transcript, TranscriptSegment
+    ├── lib/                  # URL helpers, formatters, export builders, playback sync, productivity tools, IndexedDB library, importers, line diff, batch runner (T5)
+    ├── services/             # API client (incl. share endpoints)
+    └── types/                # Video, Transcript, TranscriptSegment, ShareCreated
+
+extension/                    # MV3 browser extension (T5): activeTab-only popup opening the current YouTube video in the workspace
+backend/
+└── scripts/playlist_spike.py # ADR-012 playlist feasibility spike (T5)
 ```
 
 - **Transcript workspace** renders segments with clickable timestamps and owns search, editing and export state; on desktop it is a two-pane layout (sticky video | resizable transcript) with follow-playback highlight, keyboard shortcuts and fullscreen.
 - **Export modules** are pure functions over the in-memory transcript — no server round-trip.
+- **Library, import, comparison and batch** run entirely client-side (IndexedDB + pure functions); batch sequences existing extraction calls. Only share creation touches the backend.
 - **AI modules** are Version 2 only (Phase 10).
 
 ## C. Backend architecture — Confirmed
@@ -82,7 +89,7 @@ backend/
 9. Frontend renders timestamped segments.
 10. User searches, edits or exports — all client-side.
 
-## E. API endpoints — Confirmed for Version 1; share endpoints Proposed (V2)
+## E. API endpoints — Confirmed (share endpoints built in T5)
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -156,7 +163,7 @@ Transcript → AI module (transcript-ai.tsx) → lib/gemini.ts → Gemini API (d
 
 Runs entirely in the browser against the user's own key: `x-goog-api-key` header sent straight to `generativelanguage.googleapis.com`, never to our backend (ADR-009). Model: `gemini-3.6-flash` (free tier without billing, verified 2026-11-05). Key is memory-only unless the user opts in to "Remember", with a visible "Forget key" action. Context capped at 400k chars with a loud truncation notice; responses validated before display, rendered as plain text only. See [SECURITY.md](SECURITY.md) §H.
 
-## J. Environment configuration — Confirmed for Version 1; `DATABASE_URL` Proposed (V2)
+## J. Environment configuration — Confirmed (`DATABASE_URL` built in T5)
 
 | Variable | Service | Purpose |
 |---|---|---|
@@ -184,12 +191,12 @@ Verify before launch: backend free-tier sleep and request limits, and whether th
 |---|---|
 | Development environment (Windows, Node 22, Python 3.13, Git) | Confirmed |
 | Version 1 directories, endpoints, models and export modules | Confirmed — built and verified; see [TASKS.md](TASKS.md) |
-| Share store and share endpoints (§N), batch/playlist (ADR-012), AI (§I), deployment (§K) | Proposed — not implemented |
-| Test results | 48 frontend + 37 backend tests green — see [TESTING.md](TESTING.md) |
+| Share store and share endpoints (§N) | Confirmed — built and verified in T5; batch (ADR-012) built, playlist spike passed pending owner review; AI (§I) Confirmed; deployment (§K) Proposed |
+| Test results | 114 frontend + 48 backend tests green — see [TESTING.md](TESTING.md) |
 
-## N. Share storage and bulk extraction — Proposed (V2)
+## N. Share storage and bulk extraction — Confirmed (V2, built in T5)
 
-**Share store ([ADR-011](DECISIONS.md)).** One table on a managed Postgres-compatible service, accessed only through `share_store.py`:
+**Share store ([ADR-011](DECISIONS.md)).** One table, accessed only through `share_store.py`. The shipped implementation uses stdlib `sqlite3` (zero new dependencies) behind `DATABASE_URL`; only `sqlite:///` URLs are accepted, and an absent `DATABASE_URL` disables sharing entirely (503 `SHARES_UNAVAILABLE`). The schema below is written portably — a Postgres migration keeps the same columns (`jsonb` → `text` JSON, `timestamptz` → ISO-8601 text):
 
 ```sql
 shares(
@@ -208,4 +215,4 @@ shares(
 - Unknown or expired tokens return the standard safe 404; a periodic or lazy sweep deletes rows past `expires_at`.
 - Connection via `DATABASE_URL` (§J). This store is the only stateful component in the system; everything else remains stateless.
 
-**Batch and playlist ([ADR-012](DECISIONS.md)).** The frontend sequences `POST /api/v1/transcripts` calls (inter-request delay, per-item progress, partial success) — no backend state. Playlist enumeration is a T5 spike (Data API vs Innertube vs yt-dlp); whichever method is chosen, every returned video ID is re-validated against `^[A-Za-z0-9_-]{11}$` before use. Caps: ≤ 20 videos per batch, sequential with delay, one shared per-IP rate budget. Security requirements: [SECURITY.md](SECURITY.md) §N–§O.
+**Batch and playlist ([ADR-012](DECISIONS.md)).** The frontend sequences `POST /api/v1/transcripts` calls (inter-request delay, per-item progress, partial success) — no backend state; built in T5 (`/batch`, `lib/batch.ts`). Playlist enumeration: the T5 spike (`backend/scripts/playlist_spike.py`, Innertube) passed on 2026-11-05 — 54 unique valid ids, 0 invalid, first page only — but the method is ToS-sensitive and awaits owner review before any playlist UI ships; whenever it ships, every returned video ID is re-validated against `^[A-Za-z0-9_-]{11}$` before use. Caps: ≤ 20 videos per batch, sequential with delay, one shared per-IP rate budget. Security requirements: [SECURITY.md](SECURITY.md) §N–§O.

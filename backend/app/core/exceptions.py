@@ -39,3 +39,16 @@ class UpstreamTimeoutError(AppError):
     code = "UPSTREAM_TIMEOUT"
     status_code = 504
     message = "YouTube took too long to respond. Please try again."
+
+
+class ShareNotFoundError(AppError):
+    # Unknown and expired tokens take this identical path (SECURITY.md §N).
+    code = "SHARE_NOT_FOUND"
+    status_code = 404
+    message = "This share link is invalid or has expired."
+
+
+class SharesUnavailableError(AppError):
+    code = "SHARES_UNAVAILABLE"
+    status_code = 503
+    message = "Sharing is currently unavailable. Please try again later."

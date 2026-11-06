@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 60
     max_body_bytes: int = 16_384
 
+    # Share links (ADR-011, SECURITY.md §N): sharing stays disabled while
+    # database_url is empty; only sqlite:/// URLs are supported today.
+    database_url: str = ""
+    frontend_origin: str = "http://localhost:3000"
+    share_max_body_bytes: int = 1_048_576
+    share_rate_per_hour: int = 10
+    share_rate_per_day: int = 50
+    share_ttl_days: int = 30
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

@@ -36,3 +36,9 @@ export interface LanguageList {
 export interface ApiErrorBody {
   error: { code: string; message: string };
 }
+
+export interface ShareCreated {
+  share_url: string;
+  delete_token: string;
+  expires_at: string;
+}

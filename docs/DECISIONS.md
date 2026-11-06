@@ -142,3 +142,4 @@ Record superseding decisions here with their new ID, status `Superseded` on the 
 
 - **2026-11-03** — ADR-011 supersedes ADR-004: a database is permitted, scoped exclusively to shareable transcripts and their lifecycle. ADR-005 (no mandatory authentication) and ADR-009 (browser-side Gemini keys) explicitly reaffirmed and unchanged.
 - **2026-11-03** — ADR-012 accepts playlist and batch processing, previously excluded by PROJECT.md §J; playlist support contingent on a feasibility spike.
+- **2026-11-05** — ADR-012 spike executed: **PASS**. `backend/scripts/playlist_spike.py` (Innertube `browse`) returned 54 unique valid IDs, 0 invalid, first page of a popular playlist. Innertube is unofficial and ToS-sensitive — **no playlist UI ships until the owner reviews and approves the method**; batch (approved without contingency) shipped in T5 as written.
