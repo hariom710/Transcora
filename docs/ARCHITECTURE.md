@@ -4,7 +4,7 @@ Authoritative source for **how the system is structured**. Requirements: [PROJEC
 
 > **Status legend** — **Confirmed:** implemented and verified in this repository. **Proposed:** designed but not yet implemented.
 >
-> **Repository state (2026-11-05):** Version 1 is built, tested and verified; T1–T5 of the V2 roadmap are built (workspace, export, productivity, AI, advanced features — see [TASKS.md](TASKS.md)). Items are **Confirmed** unless their title says **Proposed** — those are designs that do not exist yet (deployment). Do not document a path or module as existing until it does.
+> **Repository state (2026-11-05):** Version 1 and V2 tranches T1–T6 are built, tested and verified (workspace, export, productivity, AI, advanced features, release hardening — see [TASKS.md](TASKS.md)); only production deployment remains (owner action). Items are **Confirmed** unless their title says **Proposed** — those are designs that do not exist yet (deployment). Do not document a path or module as existing until it does.
 
 ## A. High-level architecture
 
@@ -168,6 +168,7 @@ Runs entirely in the browser against the user's own key: `x-goog-api-key` header
 | Variable | Service | Purpose |
 |---|---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | Frontend | Backend base URL |
+| `NEXT_PUBLIC_SITE_URL` | Frontend | Deployed origin for absolute sitemap/OG URLs (T6); defaults to `http://localhost:3000` |
 | `CORS_ORIGINS` | Backend | Explicit frontend origin allowlist |
 | `DATABASE_URL` | Backend | Share-store connection; sharing stays disabled when absent (V2, ADR-011) |
 | `GEMINI_API_KEY` | — | Never used server-side; user-supplied client-side only |
@@ -178,12 +179,14 @@ Visitors → Vercel (Next.js) → Python host (FastAPI) → YouTube caption retr
 
 Verify before launch: backend free-tier sleep and request limits, and whether the host's IPs are blocked by YouTube. Test extraction from the real deployment environment before announcing publicly.
 
-## L. Performance considerations — Proposed
+## L. Performance considerations — Proposed (profiled in T6)
 
 - Next.js code splitting; efficient segment rendering (virtualize if a transcript has thousands of segments).
 - Client-side search; async endpoints with timeouts; avoid duplicate extraction.
 - Optional short-lived cache; exports generated client-side.
 - Dependencies kept to the minimum required.
+
+**Profiled (T6, 2026-11-05):** synthetic 10,000-segment transcript loaded from IndexedDB, production build — load event 333 ms, FCP 176 ms, search keystroke → committed render 240–466 ms, JS heap 249 MB (dev build was ~5× slower). The full list renders unvirtualized and stays within budget at this size, so virtualization is **not** implemented yet; it remains the lever if transcripts grow an order of magnitude (windowed rendering of `[data-segment]` rows, same as search highlighting already scopes to matched rows).
 
 ## M. Confirmed vs proposed summary
 
@@ -192,7 +195,7 @@ Verify before launch: backend free-tier sleep and request limits, and whether th
 | Development environment (Windows, Node 22, Python 3.13, Git) | Confirmed |
 | Version 1 directories, endpoints, models and export modules | Confirmed — built and verified; see [TASKS.md](TASKS.md) |
 | Share store and share endpoints (§N) | Confirmed — built and verified in T5; batch (ADR-012) built, playlist spike passed pending owner review; AI (§I) Confirmed; deployment (§K) Proposed |
-| Test results | 114 frontend + 48 backend tests green — see [TESTING.md](TESTING.md) |
+| Test results | 114 frontend + 48 backend + 5 Playwright E2E tests green — see [TESTING.md](TESTING.md) |
 
 ## N. Share storage and bulk extraction — Confirmed (V2, built in T5)
 

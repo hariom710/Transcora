@@ -1,14 +1,40 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import { Header } from "@/components/layout/header";
 
 import "./globals.css";
 
+// Absolute URLs (OG, sitemap) need the deployed origin; set at T6 deploy (ARCHITECTURE.md §J).
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE),
   title: "Free YouTube Transcript Generator",
   description:
     "Convert YouTube videos into searchable transcripts. Simple, fast and free — no account required.",
+  openGraph: {
+    siteName: "Transcora",
+    title: "Free YouTube Transcript Generator",
+    description:
+      "Convert YouTube videos into searchable transcripts. Simple, fast and free — no account required.",
+    type: "website",
+    url: SITE,
+  },
+  twitter: {
+    card: "summary",
+    title: "Free YouTube Transcript Generator",
+    description:
+      "Convert YouTube videos into searchable transcripts. Simple, fast and free — no account required.",
+  },
+  icons: { icon: "/icon.svg" },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#1d1d1f" },
+  ],
 };
 
 // Applies the stored theme before first paint to avoid a light/dark flash.

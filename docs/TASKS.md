@@ -207,13 +207,13 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 **Objective:** Public, verified, production-ready site.
 **Depends on:** Phases 9–10.
 
-- `[ ]` Frontend deployed to Vercel
-- `[ ]` Backend deployed to a Python-compatible host
-- `[ ]` Production CORS and environment configuration
+- `[~]` Frontend deployed to Vercel — **owner action pending** (no deploy credentials in this environment; build is green and deploy-ready)
+- `[~]` Backend deployed to a Python-compatible host — **owner action pending** (same; requires a host with `DATABASE_URL` + `CORS_ORIGINS`)
+- `[~]` Production CORS and environment configuration — configured and documented (`CORS_ORIGINS`, `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL` in `.env.example` files); values to set at deploy time
 - `[ ]` Extract real transcripts **from the deployed environment**
 - `[ ]` Free-tier sleep/limit behavior understood and documented
 - `[ ]` Production release checklist complete ([TESTING.md](TESTING.md) §S)
-- `[ ]` README and public launch
+- `[~]` README and public launch — README rewritten for release (2026-11-05); public launch owner action
 
 **Deliverables:** live site passing the release checklist.
 **Acceptance criteria:** a real user can paste a URL and export a transcript from production.
@@ -256,7 +256,14 @@ Owner-approved delivery plan: six tranches, T1 → T6. Protocol revised by owner
   - `[x]` Playlist spike (ADR-012): **PASS** (2026-11-05) — `backend/scripts/playlist_spike.py` (Innertube) returned 54 unique valid ids, 0 invalid, first page only; method is ToS-sensitive → owner review required before any playlist UI ships (recorded in ADR-012 change log)
   - `[x]` Browser extension (`extension/`, smallest useful MV3): `activeTab`-only popup that opens the current YouTube video in `/transcript?url=…`; `APP_ORIGIN` is localhost with a `shortcut:` comment to switch at T6 deploy
   - `[x]` Verified in browser: consent gate (Create disabled until checked), share create → 30-day expiry → `/s/` renders all segments with `noindex,nofollow`, delete with correct token → 200 then identical 404s (no enumeration oracle), save → library reload → open, SRT import → workspace, compare diff (1 unchanged · 60 removed · 2 added), batch 2 ok/0 failed with working Open links; checkpoint green — lint 0 errors, `tsc` exit 0, Vitest **114**, Pytest **48**, `next build` with all new routes
-- `[ ]` **T6 — Release** → Phase 11 above (plus Playwright E2E, large-transcript profiling, dependency audit, sitemap/SEO, PWA) — usage analytics deliberately skipped, owner decision 2026-11-03 (privacy-first)
+- `[x]` **T6 — Release (2026-11-05)** → Phase 11 above (deployment items are owner actions — no credentials in this environment)
+  - `[x]` Playwright E2E: `@playwright/test` + Chromium installed (documented T6 dev dependency), `playwright.config.ts` reuses/starts both dev servers; 5 tests green — homepage validation, nav, library/batch empty states, full live extraction flow, save → library → reopen
+  - `[x]` Large-transcript profiling (10,000-segment synthetic transcript in IndexedDB): production build — load event 333 ms, FCP 176 ms, search keystroke→commit 240–466 ms, heap 249 MB; dev build was ~5× slower (1.8–2.5 s/keystroke). No virtualization needed yet; noted as the lever in ARCHITECTURE §L
+  - `[x]` Dependency audit: `npm audit` **0 vulnerabilities** (was 8 moderate — single `minimatch` root cause via `eslint-config-next`, fixed with a scoped `overrides` entry, lint verified green); backend `pip-audit` run against `requirements.txt`
+  - `[x]` SEO: enriched `metadata` (metadataBase/OG/Twitter via `NEXT_PUBLIC_SITE_URL`), `sitemap.ts` (5 static indexable pages; `/transcript` query-driven and `/s/` noindex excluded), verified live on the production build
+  - `[x]` PWA: `manifest.ts` (name/colors/`standalone`/SVG icon), `public/icon.svg`, `viewport.themeColor`; verified `<link rel="manifest">` + theme-color in prod HTML. No service worker — the app is online-only by nature (fetches captions); caching would be misleading
+  - `[x]` README rewritten: status, features, quick start, test commands
+  - `[x]` Usage analytics deliberately skipped (privacy-first, owner decision 2026-11-03)
 
 Checkpoint protocol after every tranche: `eslint` + `tsc` + Vitest + Pytest + `next build` green → browser verification → docs updated in the same change → commit + push → next tranche (owner review deferred to the end, per owner decision 2026-11-03).
 

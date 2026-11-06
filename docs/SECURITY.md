@@ -110,7 +110,7 @@ Mandatory security requirements. Rules: [AGENTS.md](../AGENTS.md) · Architectur
 - [ ] No secrets in source, bundle or repository
 - [ ] Transcript contents absent from logs
 - [ ] Gemini key never leaves the browser (Phase 10)
-- [ ] Dependency audit free of high-severity findings
+- [x] Dependency audit free of high-severity findings — `npm audit` 0 vulnerabilities, `pip-audit` no known vulnerabilities (2026-11-05)
 - [ ] Share tokens ≥ 128-bit CSPRNG, stored only as hashes (ADR-011, §N)
 - [ ] Expired share indistinguishable from missing; expiry purge runs (§N)
 - [ ] Share creation rate-limited and body size capped — 429/413 verified (§N)

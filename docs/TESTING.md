@@ -2,7 +2,7 @@
 
 How correctness is proven. Progress: [TASKS.md](TASKS.md). Rules: [AGENTS.md](../AGENTS.md) §F.
 
-> **Status (2026-11-05):** Suites are green — 48 backend tests (Pytest) and 114 frontend tests (Vitest), plus clean `eslint`, `tsc --noEmit` and `next build` (recorded in [TASKS.md](TASKS.md)). Playwright is not installed; E2E flows were verified manually in a browser (T4, T5). Sections §U–§V cover Version 2 features; their status columns record what was actually run. **Never record a result here that was not actually observed.**
+> **Status (2026-11-05):** Suites are green — 48 backend tests (Pytest), 114 frontend tests (Vitest) and 5 Playwright E2E tests, plus clean `eslint`, `tsc --noEmit`, `next build` and `npm audit` (0 vulnerabilities) (recorded in [TASKS.md](TASKS.md)). E2E ran against the dev servers with live YouTube access; production-build E2E awaits deployment (§S). Sections §U–§V cover Version 2 features; their status columns record what was actually run. **Never record a result here that was not actually observed.**
 
 ## A. Testing philosophy
 
@@ -41,7 +41,7 @@ Status: green — `tests/test_videos_api.py` and `tests/test_transcripts_api.py`
 
 Component behaviour: search matching, editing, counts, export button states, loading/empty/error rendering.
 
-Status: green for pure logic — 114 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering), playback sync (`findActiveSegment`), productivity tools (fillers, cleanup, replace, bulk transform, undo/redo reducer), the Gemini client (feature prompts, context truncation, error mapping, response extraction, speaker-label parse/apply) and the T5 logic (TXT/SRT/VTT/MD importers, line diff, batch runner, share API client + consent gate) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they were verified manually in the browser up to T2 — from T3 on the agent's browser tooling was removed (2026-11-05), so T3 was verified via lint/tsc/Pytest/`next build`/HTTP smoke only. Browser tooling was restored before T4, which was verified interactively (see §R); T5 was likewise verified interactively (share lifecycle, library save/reload/open/remove, import, compare, batch — see §U/§V). The IndexedDB library (`lib/library.ts`) has no unit tests — node has no IndexedDB and adding `fake-indexeddb` was rejected as a dependency; its flows were verified live in the browser instead. Playwright coverage is planned for T6.
+Status: green for pure logic — 114 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering), playback sync (`findActiveSegment`), productivity tools (fillers, cleanup, replace, bulk transform, undo/redo reducer), the Gemini client (feature prompts, context truncation, error mapping, response extraction, speaker-label parse/apply) and the T5 logic (TXT/SRT/VTT/MD importers, line diff, batch runner, share API client + consent gate) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they were verified manually in the browser up to T2 — from T3 on the agent's browser tooling was removed (2026-11-05), so T3 was verified via lint/tsc/Pytest/`next build`/HTTP smoke only. Browser tooling was restored before T4, which was verified interactively (see §R); T5 was likewise verified interactively (share lifecycle, library save/reload/open/remove, import, compare, batch — see §U/§V). The IndexedDB library (`lib/library.ts`) has no unit tests — node has no IndexedDB and adding `fake-indexeddb` was rejected as a dependency; its flows were verified live in the browser instead. Playwright E2E covers the main flows from T6 on (§G).
 
 ## F. TypeScript validation
 
@@ -57,7 +57,7 @@ Strict mode must produce zero errors. Status: green — `eslint` clean and zero 
 Happy path: paste URL → transcript rendered → search finds a match → export SRT downloads.
 Error paths: invalid URL, caption-less video, backend unavailable.
 
-Status: Playwright **not installed** — the flows above were verified manually in a browser (TASKS.md Phase 9); installation and a real suite are planned for tranche T6.
+Status: Playwright **installed in T6** (`@playwright/test` + Chromium, dev dependency). Suite in `frontend/e2e/` ran green 2026-11-05 — 5 tests: homepage validation (invalid URL alert), Library/Batch nav, library and batch empty states, full extraction flow (real backend + live captions, 10+ segments, all tranche controls present), and save → library → reopen (`?saved=`, language picker hidden). Config (`playwright.config.ts`) reuses the running dev servers or starts them itself (backend with `DATABASE_URL`). Not yet covered: export downloads, caption-less video and backend-down error paths (planned with the production-build run in §S).
 
 ## H. Mocking external YouTube services
 
@@ -145,14 +145,14 @@ Key never appears in logs or in any request to our backend.
 ## S. Production release checklist
 
 - [ ] All suites green in CI
-- [ ] Full Playwright E2E green against a production build
+- [x] Full Playwright E2E green against a production build — 5/5 passed against `next start` (2026-11-05); deployment-environment run still pending
 - [ ] Real transcript extracted **from the deployed environment**
 - [ ] Rate limiting, CORS and timeouts active in production
 - [ ] No secrets in the bundle or repository
 - [ ] Light and dark themes verified
 - [ ] Mobile viewport verified
 - [ ] Error states verified with backend stopped
-- [ ] Dependency audit clean of high-severity issues
+- [x] Dependency audit clean of high-severity issues — `npm audit` reports **0 vulnerabilities** (2026-11-05; `minimatch` override in `frontend/package.json`); `pip-audit -r requirements.txt` reports **no known vulnerabilities**
 - [ ] Share lifecycle (create → read → expire → delete) verified in production (ADR-011)
 - [ ] [SECURITY.md](SECURITY.md) §L checklist signed off
 
@@ -170,7 +170,7 @@ Aligned with this environment: **Windows 10/11, Node 22, Python 3.13, Git**. No 
 | Backend dev | `uvicorn app.main:app --reload` | runnable |
 | Backend tests | `pytest -q` | green (48) |
 | Targeted test | `pytest tests/test_url_parser.py -q` | runnable |
-| E2E | `npx playwright test` | not installed — planned for T6 |
+| E2E | `npx playwright test` | green (5) — dev servers + live captions |
 
 These match the project's actual configuration. Update this table if the configuration differs — document only commands the real configuration supports.
 

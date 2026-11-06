@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Transcora">
+  <rect width="128" height="128" rx="28" fill="#0071e3"/>
+  <rect x="26" y="34" width="52" height="8" rx="4" fill="#ffffff"/>
+  <rect x="26" y="60" width="76" height="8" rx="4" fill="#ffffff" opacity="0.9"/>
+  <rect x="26" y="86" width="64" height="8" rx="4" fill="#ffffff" opacity="0.75"/>
+  <circle cx="98" cy="38" r="10" fill="#ffffff" opacity="0.9"/>
+</svg>
