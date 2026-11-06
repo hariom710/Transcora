@@ -37,7 +37,7 @@ https://www.youtube.com/shorts/VIDEO_ID
 
 **Transcript tools:** timestamped transcript · clickable timestamps · search with highlighted matches · copy all · copy segment · text editing · whitespace normalization · auto-scroll · select all · character/word/segment counts · language display.
 
-**Exports:** TXT · SRT · VTT · Markdown · PDF · copy to clipboard. Exports preserve original timestamps and reflect user edits.
+**Exports:** TXT · SRT · VTT · Markdown · CSV · DOCX · PDF · copy to clipboard. Exports preserve original timestamps and reflect user edits; PDF embeds a Unicode font (Latin/Greek/Cyrillic) so non-Latin text renders correctly.
 
 **UX:** minimal homepage · responsive · light and dark modes · loading progress · success and error notifications · optional local recent history · no mandatory registration · no popups · accessible keyboard navigation.
 

@@ -40,7 +40,14 @@ export const DEFAULT_EXPORT_OPTIONS: ExportOptions = {
 
 /** Safe download base name, shared by the dialog prefill and buildExport. */
 export function defaultExportName(t: Transcript, title?: string | null): string {
-  return (title || t.video_id).replace(/[^\w\- ]+/g, "").trim() || "transcript";
+  // Remove path/control chars and Windows-unsafe edge dots; keep Unicode letters
+  // so international titles are not mangled.
+  return (
+    (title || t.video_id)
+      .replace(/[<>:"/\\|?*\u0000-\u001f]+/g, "")
+      .replace(/^\.+|\.+$/g, "")
+      .trim() || "transcript"
+  );
 }
 
 /** Keeps only the given segment ids, preserving transcript order. */
@@ -162,6 +169,7 @@ export async function toDocx(
 }
 
 export function toSrt(t: Transcript): string {
+  if (t.segments.length === 0) return "";
   return (
     t.segments
       .map(
@@ -173,6 +181,7 @@ export function toSrt(t: Transcript): string {
 }
 
 export function toVtt(t: Transcript): string {
+  if (t.segments.length === 0) return "WEBVTT\n";
   const cues = t.segments
     .map(
       (s) => `${formatVttTime(s.start)} --> ${formatVttTime(s.start + s.duration)}\n${s.text}`,
@@ -194,18 +203,61 @@ export function toMarkdown(
   return `${heading}${meta}${body}\n`;
 }
 
-export function toPdf(t: Transcript, title?: string | null): Blob {
+// PDF text font: jsPDF's base-14 fonts are Latin-1 only, so non-Latin transcripts
+// rendered as boxes (Cyrillic is written as UTF-16 bytes into a Latin-1 slot).
+// Noto Sans (OFL, public/fonts/) covers Latin, Greek and Cyrillic and is embedded
+// as a subset with a ToUnicode map.
+// shortcut: scripts outside Latin/Greek/Cyrillic (CJK, Indic, RTL) still need
+// script-specific fonts — embed one per family when that shows up in practice.
+const PDF_FONT_FILE = "NotoSans-Regular.ttf";
+const PDF_FONT_NAME = "NotoSans";
+const PDF_FONT_URL = `/fonts/${PDF_FONT_FILE}`;
+
+let fontCache: Promise<Uint8Array | null> | null = null;
+
+async function fetchPdfFont(): Promise<Uint8Array | null> {
+  try {
+    const response = await fetch(PDF_FONT_URL);
+    if (!response.ok) return null;
+    return new Uint8Array(await response.arrayBuffer());
+  } catch {
+    return null; // offline/unsupported → base-14 Latin-1 fallback in toPdf
+  }
+}
+
+/** Cached font bytes shared by every PDF export in the session. */
+export function loadPdfFont(): Promise<Uint8Array | null> {
+  fontCache ??= fetchPdfFont();
+  return fontCache;
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+export function toPdf(t: Transcript, title?: string | null, font?: Uint8Array | null): Blob {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const unicode = Boolean(font && font.length > 0);
+  if (unicode) {
+    doc.addFileToVFS(PDF_FONT_FILE, toBase64(font as Uint8Array));
+    doc.addFont(PDF_FONT_FILE, PDF_FONT_NAME, "normal");
+  }
   const margin = 48;
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const maxWidth = pageWidth - margin * 2;
   let y = margin;
 
-  // shortcut: jsPDF base-14 fonts are Latin-1, so non-Latin transcripts render
-  // as boxes; upgrade to an embedded Unicode font if that shows up in practice.
   const write = (text: string, size: number, leading: number, bold = false) => {
-    doc.setFont("helvetica", bold ? "bold" : "normal");
+    if (unicode) {
+      doc.setFont(PDF_FONT_NAME, "normal");
+    } else {
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+    }
     doc.setFontSize(size);
     const lines = doc.splitTextToSize(text, maxWidth) as string[];
     for (const line of lines) {
@@ -248,8 +300,10 @@ export async function buildExport(
       return { blob: new Blob([toCsv(transcript, opts, title)], { type: "text/csv;charset=utf-8" }), filename: `${base}.csv` };
     case "docx":
       return { blob: await toDocx(transcript, opts, title), filename: `${base}.docx` };
-    case "pdf":
-      return { blob: toPdf(transcript, title), filename: `${base}.pdf` };
+    case "pdf": {
+      const font = await loadPdfFont();
+      return { blob: toPdf(transcript, title, font), filename: `${base}.pdf` };
+    }
     default:
       return { blob: new Blob([toTxt(transcript, opts)], { type: "text/plain;charset=utf-8" }), filename: `${base}.txt` };
   }

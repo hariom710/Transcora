@@ -134,6 +134,15 @@ New architectural changes are recorded here — never made silently. The origina
 - **Consequences:** PROJECT.md §J updated; rate-limit budget must account for bulk submissions; partial-failure UX is mandatory; playlist support is contingent on the spike, not committed.
 - **Date:** 2026-11-03
 
+## ADR-013 — Embedded Unicode font for PDF export
+
+- **Status:** Accepted
+- **Context:** jsPDF's base-14 fonts are Latin-1 only. Non-Latin transcript text (e.g. Cyrillic) was written as UTF-16 bytes into a Latin-1 glyph slot, so PDFs rendered as boxes. ADR-007 requires client-side PDF generation with minimal dependencies.
+- **Decision:** Embed **Noto Sans Regular** (SIL OFL 1.1, `frontend/public/fonts/NotoSans-Regular.ttf` with `OFL.txt`) in the PDF at export time. The bytes are fetched once per session from the same-origin static asset (no backend involvement) and cached; jsPDF embeds a glyph subset with a ToUnicode map, so files stay small (≈90–100 KB for typical transcripts, ≈100 KB with ~90 glyphs). When the fetch fails (offline), export falls back to base-14 Helvetica with its Latin-1 limitation. Coverage is Latin, Greek and Cyrillic — the font's own scope.
+- **Alternatives considered:** server-side PDF rendering (violates ADR-007, adds server load); a font-subsetting build step or new npm dependency (rejected — jsPDF subsets in-browser already); Latin-1-only output (the bug being fixed); per-script font switching for CJK/Indic/RTL (deferred until those scripts appear in practice — recorded as a `shortcut:` in `export.ts`).
+- **Consequences:** PDF export needs one extra static request per session (569 KB asset, cached, served as a static file); the title renders regular weight (only Regular is embedded — bold base-14 is not used alongside it); non-Latin/Cyrillic/Greek text is verified by tests asserting `FontFile2` + `beginbfchar` mappings ([TESTING.md](TESTING.md) §N) and rendered visually (2026-11-06). Scripts outside Latin/Greek/Cyrillic (CJK, Indic, RTL) are out of scope until a script-specific font is added.
+- **Date:** 2026-11-06
+
 ---
 
 ## Change log
@@ -143,3 +152,4 @@ Record superseding decisions here with their new ID, status `Superseded` on the 
 - **2026-11-03** — ADR-011 supersedes ADR-004: a database is permitted, scoped exclusively to shareable transcripts and their lifecycle. ADR-005 (no mandatory authentication) and ADR-009 (browser-side Gemini keys) explicitly reaffirmed and unchanged.
 - **2026-11-03** — ADR-012 accepts playlist and batch processing, previously excluded by PROJECT.md §J; playlist support contingent on a feasibility spike.
 - **2026-11-05** — ADR-012 spike executed: **PASS**. `backend/scripts/playlist_spike.py` (Innertube `browse`) returned 54 unique valid IDs, 0 invalid, first page of a popular playlist. Innertube is unofficial and ToS-sensitive — **no playlist UI ships until the owner reviews and approves the method**; batch (approved without contingency) shipped in T5 as written.
+- **2026-11-06** — ADR-013 accepted during the T2 audit: PDF export embeds Noto Sans Regular (OFL) as a subset with ToUnicode, replacing the base-14 Latin-1 path that rendered non-Latin text as boxes; base-14 Helvetica remains the offline fallback.

@@ -151,6 +151,8 @@ API error response:
 
 Client-side builders in `frontend/src/lib/export.ts`: `toTxt`, `toSrt`, `toVtt`, `toMarkdown`, `toCsv`, `toDocx`, `toPdf`, plus `buildExport` (async dispatcher returning `{ blob, filename }`) and `filterSegments` (scope: entire transcript vs current search matches). Each takes the normalized `Transcript` plus current edits and `ExportOptions` (timestamps, metadata header, segment/paragraph formatting, filename) and returns a `Blob`/string. Server is uninvolved.
 
+PDF text uses an embedded font: jsPDF's base-14 fonts are Latin-1 only, so `toPdf` fetches Noto Sans Regular (OFL, `frontend/public/fonts/NotoSans-Regular.ttf` + `OFL.txt`) once per session, embeds it as a subset with a ToUnicode map (ADR-013), and falls back to Helvetica when the fetch fails (offline). Coverage is Latin/Greek/Cyrillic — scripts outside that scope are a documented `shortcut:` in `export.ts`.
+
 ## I. Gemini integration — Confirmed (Phase 10, T4)
 
 ```

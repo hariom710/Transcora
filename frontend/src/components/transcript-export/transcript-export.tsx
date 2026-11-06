@@ -79,6 +79,12 @@ export function TranscriptExport({ transcript, title, matchIds }: TranscriptExpo
           onClick={() => setOpen((value) => !value)}
           aria-haspopup="menu"
           aria-expanded={open}
+          disabled={transcript.segments.length === 0}
+          title={
+            transcript.segments.length === 0
+              ? "Nothing to export — this transcript is empty"
+              : undefined
+          }
         >
           Export
           <svg
