@@ -21,7 +21,7 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 - `[x]` Scaffold FastAPI backend
   - `[x]` `app/` structure per [ARCHITECTURE.md](ARCHITECTURE.md) §C
   - `[x]` Pydantic Settings, `.env.example`
-- `[~]` Test harness: Pytest configured and green (48 tests as of T5); Playwright not installed — E2E so far done manually in a browser
+- `[x]` Test harness: Pytest configured and green (48 tests); Playwright installed in T6 - 14 E2E tests in `frontend/e2e/` (T2 + T3)
 - `[x]` `GET /health` returns 200 (verified live and covered by a test)
 
 **Deliverables:** two runnable services, `npm run dev` and `uvicorn app.main:app`.
@@ -170,12 +170,12 @@ Master progress tracker. Requirements: [PROJECT.md](PROJECT.md) · Testing: [TES
 
 - `[x]` Backend unit + integration suites green (37 pytest tests)
 - `[x]` Frontend unit suites green (48 vitest tests); `eslint` and `tsc --noEmit` clean; `next build` succeeds
-- `[ ]` Playwright E2E happy path and error paths — not installed; equivalent flows verified manually in a browser (submit → transcript → search → SRT/PDF download → theme toggle → error paths → language switch)
+- `[x]` Playwright E2E happy path and error paths - installed in T6 (`@playwright/test` + Chromium); 14 tests cover homepage validation, nav, empty states, full extraction, save -> library -> reopen, T2 export downloads and T3 productivity flows (TESTING.md §G)
 - `[~]` Security checklist signed off ([SECURITY.md](SECURITY.md) §L) — SSRF, CORS, rate limit and body-size limits covered by tests; full §L review not run
 - `[x]` SSRF and URL-allowlist tests
 - `[~]` Rate-limit verified by test; upstream timeout path not yet exercised
-- `[ ]` Large-transcript profiling; virtualize if needed
-- `[ ]` Dependency audit
+- `[x]` Large-transcript profiling; virtualize if needed - profiled in T6 at 10,000 segments (production build: load 333 ms, FCP 176 ms, keystroke 240-466 ms); full list stays within budget unvirtualized, so no virtualization shipped - it remains the lever if transcripts grow an order of magnitude (ARCHITECTURE.md §L)
+- `[x]` Dependency audit - `npm audit` 0 vulnerabilities and `pip-audit` no known vulnerabilities (2026-11-05; re-verified 2026-11-07)
 
 **Deliverables:** CI-green suites, performance notes.
 **Acceptance criteria:** all suites pass; no high-severity dependency findings; large transcript renders without UI freeze.

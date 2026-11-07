@@ -97,25 +97,25 @@ Mandatory security requirements. Rules: [AGENTS.md](../AGENTS.md) · Architectur
 
 ## L. Security verification checklist
 
-- [ ] Domain allowlist rejects look-alike hosts (server-side test)
-- [ ] Video ID pattern enforced before any outbound call
-- [ ] No outbound request to any user-supplied URL (SSRF test)
-- [ ] Rate limit returns `429` under sustained load
-- [ ] Request size limit rejects oversized bodies
-- [ ] Timeouts and concurrency caps active
-- [ ] Error responses contain no internals
-- [ ] CORS rejects unknown origins
-- [ ] Transcript text with HTML/script payload renders as text
-- [ ] Export filenames sanitized
-- [ ] No secrets in source, bundle or repository
-- [ ] Transcript contents absent from logs
-- [ ] Gemini key never leaves the browser (Phase 10)
-- [x] Dependency audit free of high-severity findings — `npm audit` 0 vulnerabilities, `pip-audit` no known vulnerabilities (2026-11-05)
-- [ ] Share tokens ≥ 128-bit CSPRNG, stored only as hashes (ADR-011, §N)
-- [ ] Expired share indistinguishable from missing; expiry purge runs (§N)
-- [ ] Share creation rate-limited and body size capped — 429/413 verified (§N)
-- [ ] Share logs contain no transcript content and no full tokens (§N)
-- [ ] Batch capped at 20, sequential, one shared per-IP rate budget (ADR-012, §O)
+- [x] Domain allowlist rejects look-alike hosts (server-side test) — `test_url_parser.py` rejects `evil.com`, `youtube.com.evil.com`, `www.youtube.com.evil.com`
+- [x] Video ID pattern enforced before any outbound call — `test_transcript_service.py::test_invalid_url_never_reaches_provider` asserts `provider.calls == []`
+- [x] No outbound request to any user-supplied URL (SSRF test) — same `provider.calls == []` assertion; provider contacted only with validated ID
+- [x] Rate limit returns `429` under sustained load — `test_rate_limit` monkeypatches `RateLimiter(2, 60)` and asserts 429 with `Retry-After`
+- [x] Request size limit rejects oversized bodies — `test_oversized_body_rejected` asserts 413 `PAYLOAD_TOO_LARGE`
+- [ ] Timeouts and concurrency caps active — timeout active (`runner.py` `asyncio.wait_for` 15s, httpx timeouts) but **no concurrency cap/semaphore** implemented; documented `shortcut:` in `runner.py:12-13` — open
+- [x] Error responses contain no internals — `app/core/exceptions.py` safe messages; `app/main.py` catch-all `Exception` handler returns generic 500; gemini `mapHttpError(500, "boom")` does not leak body
+- [x] CORS rejects unknown origins — `test_cors_rejects_unknown_origin` asserts no `access-control-allow-origin` header
+- [x] Transcript text with HTML/script payload renders as text — React default escaping; no `dangerouslySetInnerHTML` on transcript/error/title/channel content
+- [x] Export filenames sanitized — `export.test.ts` path traversal `../../etc/passwd` → `etcpasswd.txt`, `///` → `transcript.txt`
+- [x] No secrets in source, bundle or repository — `.env` ignored by `.gitignore`, only `.env.example` tracked; repo-wide secret scan clean (only `playlist_spike.py` documented research fixture)
+- [x] Transcript contents absent from logs — `test_logging_carries_metadata_only`; `share_store.py`/`shares.py` log metadata only (truncated token prefix, video ID, byte size)
+- [x] Gemini key never leaves the browser (Phase 10) — `gemini.ts` sends `x-goog-api-key` directly to `generativelanguage.googleapis.com` via browser fetch, never via our backend
+- [x] Dependency audit free of high-severity findings — `npm audit` 0 vulnerabilities, `pip-audit` no known vulnerabilities
+- [x] Share tokens ≥ 128-bit CSPRNG, stored only as hashes (ADR-011, §N) — `test_tokens_unique_and_only_hashes_stored`
+- [x] Expired share indistinguishable from missing; expiry purge runs (§N) — `test_unknown_and_expired_token_identical_404`, `test_expired_rows_purged_by_lazy_sweep`
+- [x] Share creation rate-limited and body size capped — 429/413 verified (§N) — `test_creation_flood_429_with_retry_after`, `test_oversized_body_rejected_and_nothing_stored`
+- [x] Share logs contain no transcript content and no full tokens (§N) — `test_logging_carries_metadata_only`
+- [x] Batch capped at 20, sequential, one shared per-IP rate budget (ADR-012, §O) — `batch.test.ts` rejects `BATCH_MAX + 1` items before any request
 
 ## M. Threat model and mitigations
 
