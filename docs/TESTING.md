@@ -2,7 +2,7 @@
 
 How correctness is proven. Progress: [TASKS.md](TASKS.md). Rules: [AGENTS.md](../AGENTS.md) §F.
 
-> **Status (2026-11-06):** Suites are green — 48 backend tests (Pytest), 127 frontend tests (Vitest) and 6 Playwright E2E tests, plus clean `eslint`, `tsc --noEmit`, `next build` and `npm audit` (0 vulnerabilities) (recorded in [TASKS.md](TASKS.md)). E2E ran against the dev servers with live YouTube access; production-build E2E awaits deployment (§S). Sections §U–§V cover Version 2 features; their status columns record what was actually run. **Never record a result here that was not actually observed.**
+> **Status (2026-11-07):** Suites are green — 48 backend tests (Pytest), 137 frontend tests (Vitest) — plus clean `eslint`, `tsc --noEmit`, `next build` and `npm audit` (0 vulnerabilities) (recorded in [TASKS.md](TASKS.md); T3 execution evidence in §W). Playwright E2E: **12/14 passed, 2 blocked by the upstream YouTube IP rate limit** (`transcript.spec.ts:5` and `:28` → `UPSTREAM_BLOCKED` 503, confirmed by direct backend probe; both passed in the 2026-11-06 green run — see §W). E2E ran against the dev servers with live YouTube access, paced for caption quota (§G); production-build E2E awaits deployment (§S). Sections §U–§W cover Version 2 features and T3; their status columns record what was actually run. **Never record a result here that was not actually observed.**
 
 ## A. Testing philosophy
 
@@ -41,7 +41,7 @@ Status: green — `tests/test_videos_api.py` and `tests/test_transcripts_api.py`
 
 Component behaviour: search matching, editing, counts, export button states, loading/empty/error rendering.
 
-Status: green for pure logic — 127 Vitest tests over URL parsing, timestamps, search, export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering, Unicode round-trip across all string formats, DOCX ZIP/`word/document.xml` parsing via `node:zlib`, PDF embedded-font `FontFile2`/ToUnicode assertions + base-14 fallback + pagination, empty-transcript matrix over all 7 formats, 5000-segment large-transcript checks, Unicode filenames and MIME types), playback sync (`findActiveSegment`), productivity tools (fillers, cleanup, replace, bulk transform, undo/redo reducer), the Gemini client (feature prompts, context truncation, error mapping, response extraction, speaker-label parse/apply) and the T5 logic (TXT/SRT/VTT/MD importers, line diff, batch runner, share API client + consent gate) (`frontend/tests/`). Editing, counts and loading/empty/error rendering have no automated component tests; they were verified manually in the browser up to T2 — from T3 on the agent's browser tooling was removed (2026-11-05), so T3 was verified via lint/tsc/Pytest/`next build`/HTTP smoke only. Browser tooling was restored before T4, which was verified interactively (see §R); T5 was likewise verified interactively (share lifecycle, library save/reload/open/remove, import, compare, batch — see §U/§V). The IndexedDB library (`lib/library.ts`) has no unit tests — node has no IndexedDB and adding `fake-indexeddb` was rejected as a dependency; its flows were verified live in the browser instead. Playwright E2E covers the main flows from T6 on (§G).
+Status: green — **137 Vitest tests** over URL parsing, timestamps, search (incl. `wrapIndex` prev/next wrapping), export builders (incl. plain-text clipboard variant, CSV, DOCX, export options, scope filtering, Unicode round-trip across all string formats, DOCX ZIP/`word/document.xml` parsing via `node:zlib`, PDF embedded-font `FontFile2`/ToUnicode assertions + base-14 fallback + pagination, empty-transcript matrix over all 7 formats, 5000-segment large-transcript checks, Unicode filenames and MIME types), playback sync (`findActiveSegment`), productivity tools (fillers, cleanup, replace incl. adjacent/Unicode/replacement-contains-query/never-blank edges, bulk transform, `transcriptStats`, undo/redo reducer incl. the `reset` action added by the T3 audit), the Gemini client (feature prompts, context truncation, error mapping, response extraction, speaker-label parse/apply) and the T5 logic (TXT/SRT/VTT/MD importers, line diff, batch runner, share API client + consent gate) (`frontend/tests/`). Editing, counts and loading/empty/error rendering were verified manually in the browser up to T2 and had no automated coverage — from T3 they are covered by `e2e/productivity.spec.ts` (§G) plus an interactive browser pass (§W). The IndexedDB library (`lib/library.ts`) has no unit tests — node has no IndexedDB and adding `fake-indexeddb` was rejected as a dependency; its flows were verified live in the browser instead (fixture seeding exercised the read path in §W, write path via save/reopen in §U).
 
 ## F. TypeScript validation
 
@@ -57,7 +57,7 @@ Strict mode must produce zero errors. Status: green — `eslint` clean and zero 
 Happy path: paste URL → transcript rendered → search finds a match → export SRT downloads.
 Error paths: invalid URL, caption-less video, backend unavailable.
 
-Status: Playwright **installed in T6** (`@playwright/test` + Chromium, dev dependency). Suite in `frontend/e2e/` ran green 2026-11-06 — 6 tests: homepage validation (invalid URL alert), Library/Batch nav, library and batch empty states, full extraction flow (real backend + live captions, 10+ segments, all tranche controls present), save → library → reopen (`?saved=`, language picker hidden), and T2 export downloads (menu → options dialog → real SRT + PDF files with content assertions — see §N). Config (`playwright.config.ts`) reuses the running dev servers or starts them itself (backend with `DATABASE_URL`). Live-caption tests can transiently hit YouTube HTTP 429 under repeated runs (observed 2026-11-06; passed on retry — the error UI + "Try again" rendered correctly). Not yet covered: caption-less video and backend-down error paths (planned with the production-build run in §S).
+Status: Playwright **installed in T6** (`@playwright/test` + Chromium, dev dependency). Suite in `frontend/e2e/` — **14 tests** since T3 (2026-11-07): homepage validation (invalid URL alert), Library/Batch nav, library and batch empty states, full extraction flow (real backend + live captions, 10+ segments, all tranche controls present), save → library → reopen (`?saved=`, language picker hidden), T2 export downloads (menu → options dialog → real SRT + PDF files with content assertions — see §N), and T3 `productivity.spec.ts` (8 tests: full workflow edit → stats → undo/redo → search prev-wrap → replace → fillers/cleanup → highlight/note/bookmark → bookmark nav → reading mode → TXT export of edited content; loading skeleton via delayed+aborted route; malformed-URL alert; empty `?saved=` fixture; D1 language-switch reset; responsive 375/768/1280 overflow + touch targets; light/dark themes + `/` shortcut + zero console errors). Config (`playwright.config.ts`) reuses the running dev servers or starts them itself (backend with `DATABASE_URL`). Live-caption tests are quota-sensitive: bursts of rapid extracts trigger YouTube rate-limiting (`UPSTREAM_BLOCKED` 503 → "YouTube is temporarily refusing requests" card) and on 2026-11-06/07 an IP-level block that cleared overnight — live tests must be paced (≥75 s between single runs; observed quota ≈ 2 successful extracts per short window). Fixture-only tests (empty `?saved=`, responsive, themes, malformed URL, export) are unaffected. Not yet covered: caption-less video and backend-down error paths (planned with the production-build run in §S). T3 execution evidence: §W.
 
 ## H. Mocking external YouTube services
 
@@ -169,12 +169,12 @@ Aligned with this environment: **Windows 10/11, Node 22, Python 3.13, Git**. No 
 | Frontend dev | `npm run dev` | runnable |
 | Type check | `npx tsc --noEmit` | green |
 | Lint | `npm run lint` | green |
-| Frontend tests | `npm test` | green (127) |
+| Frontend tests | `npm test` | green (137) |
 | Frontend build | `npm run build` | green |
 | Backend dev | `uvicorn app.main:app --reload` | runnable |
 | Backend tests | `pytest -q` | green (48) |
 | Targeted test | `pytest tests/test_url_parser.py -q` | runnable |
-| E2E | `npx playwright test` | green (6) — dev servers + live captions |
+| E2E | `npx playwright test` | 14 tests — dev servers + live captions; pace live tests (§G) |
 
 These match the project's actual configuration. Update this table if the configuration differs — document only commands the real configuration supports.
 
@@ -208,3 +208,37 @@ These match the project's actual configuration. Update this table if the configu
 | Rate budget | mid-batch 429 surfaces as that item's error | `[x]` `lib/batch.ts` unit test ("surfaces a mid-batch rate limit as that item's error") |
 | Playlist spike fixtures | chosen method's responses mocked per §H; every enumerated ID re-validated against `^[A-Za-z0-9_-]{11}$` | `[x]` spike run 2026-11-05 (`backend/scripts/playlist_spike.py`): 54 unique valid ids, 0 invalid — Innertube viable, ToS-sensitive, owner review pending |
 | Playlist unsupported (UI) | clear structured error; the rest of the app remains usable | `[x]` no playlist UI ships in T5 (spike only) — nothing to break; batch works independently |
+
+## W. T3 verification evidence (executed 2026-11-06/07)
+
+Everything below was actually executed in this environment; nothing is inferred.
+
+| Check | Result |
+|---|---|
+| `npm run lint` (eslint) | green — clean after all T3 edits |
+| `npx tsc --noEmit` (src + tests + e2e) | green — zero errors |
+| `npm test` (Vitest) | green — **137/137** (incl. +10 T3 tests) |
+| `pytest -q` | green — **48/48** (exit 0) |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` (next build) | green — 11 routes, TS clean during build |
+| `npx playwright test` | 12/14 passed (full suite 2026-11-07: 11 passed/3 failed -> D1 passed on paced retry 12.5 s); transcript.spec.ts:5 and :28 BLOCKED by YouTube IP quota - UPSTREAM_BLOCKED 503 confirmed by direct backend probe; both passed in 2026-11-06 green run |
+| Secret scan over the final diff | clean (no keys/tokens/passwords) |
+
+**Interactive browser pass** (fixture `T3VERIFY01` seeded in IndexedDB + live captions, dev build):
+
+- Edit → stats live-update (115→113 words, 651→626 chars); undo/redo restored content exactly.
+- Search `never` → `1/3`; prev at first match wrapped to `3/3` (D2); next wrapped `1/3`.
+- Replace all (3) → toast "Replace: 3 segments updated", counter `0/0`, marks cleared, chars 626→629; undo restored fully.
+- Remove fillers (8 segments) and Clean up text (2 segments) — each one undo step.
+- Highlight `aria-pressed` + "1 highlighted"; multiline note rendered on two lines (`whitespace-pre-wrap`, D6); ★ bookmarks → toolbar `★ 2` → bookmark nav landed on the bookmarked segment (search match correctly wins while a query is active).
+- Reading mode via `r` (separator hidden); typing `r` in the search field does **not** toggle it; undo after reading mode works.
+- Dark and light themes; **zero console errors** across the pass.
+- Loading skeleton observed live (delayed route); error card observed live during the IP-block episode ("YouTube is temporarily refusing requests").
+- D1 language-switch reset covered by `productivity.spec.ts:260` (passed on paced retry, 12.5 s).
+
+**Performance** (10,000-segment fixture `PERF10K0001`, in-app browser, dev build):
+
+- 10000 articles rendered; navigation `domInteractive` 209 ms, `load` event 544 ms; JS heap ≈ 130 MB; stats correct (`10000 segments · 250000 words · 1268894 characters · 1250 min read`).
+- Search keystroke → committed paint (double-rAF): worst case query matching all 10 000 segments **2708 ms**, rare query **2763 ms**, clear **1801 ms**. Dev-build numbers (no production minification/hydration tuning); noted as an observation, not a regression gate — no T3 perf budget was defined.
+
+**Blocked / external:** live YouTube caption access is quota-limited from this machine (≈2 extracts per short window; an IP-level block on 2026-11-06 cleared overnight). Fixture-only E2E tests are unaffected; live tests must be paced ≥75 s apart (§G).

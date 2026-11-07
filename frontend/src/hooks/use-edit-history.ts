@@ -14,7 +14,8 @@ export type HistoryAction =
   | { type: "patch"; partial: Edits }
   | { type: "commit"; edits: Edits }
   | { type: "undo" }
-  | { type: "redo" };
+  | { type: "redo" }
+  | { type: "reset" };
 
 /** Caps history so a long editing session cannot grow without bound. */
 const LIMIT = 50;
@@ -59,6 +60,17 @@ export function historyReducer(state: EditHistory, action: HistoryAction): EditH
         future,
       };
     }
+    // A different transcript invalidates every edit: segment ids are positional,
+    // so stale rows would otherwise apply to the wrong text (T3 audit D1).
+    case "reset":
+      if (
+        state.past.length === 0 &&
+        state.future.length === 0 &&
+        Object.keys(state.present).length === 0
+      ) {
+        return state;
+      }
+      return { past: [], present: {}, future: [] };
   }
 }
 
@@ -71,6 +83,7 @@ export function useEditHistory(): {
   commit: (edits: Edits) => void;
   undo: () => void;
   redo: () => void;
+  reset: () => void;
 } {
   const [state, dispatch] = useReducer(historyReducer, {
     past: [],
@@ -84,6 +97,7 @@ export function useEditHistory(): {
   const commit = useCallback((edits: Edits) => dispatch({ type: "commit", edits }), []);
   const undo = useCallback(() => dispatch({ type: "undo" }), []);
   const redo = useCallback(() => dispatch({ type: "redo" }), []);
+  const reset = useCallback(() => dispatch({ type: "reset" }), []);
   return {
     edits: state.present,
     canUndo: state.past.length > 0,
@@ -92,5 +106,6 @@ export function useEditHistory(): {
     commit,
     undo,
     redo,
+    reset,
   };
 }

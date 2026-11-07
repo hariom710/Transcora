@@ -7,6 +7,7 @@ import {
   removeFillers,
   replaceAll,
   toggleId,
+  transcriptStats,
 } from "@/lib/productivity";
 import { historyReducer, type EditHistory } from "@/hooks/use-edit-history";
 import type { TranscriptSegment } from "@/types";
@@ -65,6 +66,32 @@ describe("replaceAll", () => {
   it("is a no-op without a query", () => {
     expect(replaceAll(SEGMENTS, "", "x")).toEqual({});
   });
+
+  it("replaces adjacent matches deterministically", () => {
+    const rows: TranscriptSegment[] = [{ id: 1, start: 0, duration: 1, text: "aa aa aa" }];
+    expect(replaceAll(rows, "a", "b")[1]).toBe("bb bb bb");
+  });
+
+  it("does not re-scan its own replacement (query inside replacement)", () => {
+    const rows: TranscriptSegment[] = [{ id: 1, start: 0, duration: 1, text: "cat" }];
+    expect(replaceAll(rows, "cat", "catapult")[1]).toBe("catapult");
+  });
+
+  it("matches Unicode text literally (case-insensitive)", () => {
+    const rows: TranscriptSegment[] = [{ id: 1, start: 0, duration: 1, text: "café time" }];
+    expect(replaceAll(rows, "café", "tea")[1]).toBe("tea time");
+    expect(replaceAll(rows, "CAFÉ", "tea")[1]).toBe("tea time");
+    expect(replaceAll(rows, "cafe", "tea")).toEqual({});
+  });
+
+  it("removes matches on empty replacement but never blanks a segment", () => {
+    const rows: TranscriptSegment[] = [
+      { id: 1, start: 0, duration: 1, text: "keep this part" },
+      { id: 2, start: 1, duration: 1, text: "gone" },
+    ];
+    expect(replaceAll(rows, "gone", "")).toEqual({});
+    expect(replaceAll(rows, "part", "")[1]).toBe("keep this ");
+  });
 });
 
 describe("bulkTransform", () => {
@@ -84,6 +111,21 @@ describe("readingMinutes", () => {
     expect(readingMinutes(0)).toBe(1);
     expect(readingMinutes(400)).toBe(2);
     expect(readingMinutes(100)).toBe(1);
+  });
+});
+
+describe("transcriptStats", () => {
+  it("counts segments, whitespace-separated words and characters", () => {
+    expect(transcriptStats(SEGMENTS)).toEqual({ segments: 3, words: 16, characters: 76 });
+  });
+
+  it("ignores whitespace-only segments but counts their characters", () => {
+    const rows: TranscriptSegment[] = [{ id: 1, start: 0, duration: 1, text: "   " }];
+    expect(transcriptStats(rows)).toEqual({ segments: 1, words: 0, characters: 3 });
+  });
+
+  it("returns zeros for an empty transcript", () => {
+    expect(transcriptStats([])).toEqual({ segments: 0, words: 0, characters: 0 });
   });
 });
 
@@ -135,5 +177,16 @@ describe("historyReducer", () => {
       state = historyReducer(state, { type: "patch", partial: { [i]: `v${i}` } });
     }
     expect(state.past).toHaveLength(50);
+  });
+
+  it("reset clears edits and history for a new transcript (T3 D1)", () => {
+    let state = historyReducer(empty, { type: "patch", partial: { 1: "a" } });
+    state = historyReducer(state, { type: "undo" });
+    state = historyReducer(state, { type: "redo" });
+    const reset = historyReducer(state, { type: "reset" });
+    expect(reset).toEqual(empty);
+
+    // A no-op reset must not replace the state object (avoids a render loop).
+    expect(historyReducer(empty, { type: "reset" })).toBe(empty);
   });
 });

@@ -196,7 +196,8 @@ export function TranscriptViewer({
                     <span className="shrink-0 pt-0.5" aria-hidden="true">
                       <NoteIcon />
                     </span>
-                    <span>{note}</span>
+                    {/* pre-wrap keeps multiline notes as authored (T3 audit D6). */}
+                    <span className="whitespace-pre-wrap">{note}</span>
                   </p>
                 )
               )}

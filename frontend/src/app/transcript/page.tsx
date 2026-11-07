@@ -34,8 +34,9 @@ import {
   removeFillers,
   replaceAll,
   toggleId,
+  transcriptStats,
 } from "@/lib/productivity";
-import { findMatches } from "@/lib/search";
+import { findMatches, wrapIndex } from "@/lib/search";
 import { parseVideoId } from "@/lib/url";
 import { ApiFailure, extractTranscript, inspectVideo, listLanguages } from "@/services/api";
 import type { LanguageInfo, Transcript, TranscriptSegment, Video } from "@/types";
@@ -74,7 +75,7 @@ function Workspace() {
   const [activeMatch, setActiveMatch] = useState(0);
 
   // T3 productivity: undo/redo over edits, annotations, reading mode, tool toast.
-  const { edits, canUndo, canRedo, patch, commit, undo, redo } = useEditHistory();
+  const { edits, canUndo, canRedo, patch, commit, undo, redo, reset } = useEditHistory();
   const [highlights, setHighlights] = useState<ReadonlySet<number>>(new Set());
   const [bookmarks, setBookmarks] = useState<ReadonlySet<number>>(new Set());
   const [notes, setNotes] = useState<Record<number, string>>({});
@@ -106,6 +107,17 @@ function Workspace() {
   // UI to loading without calling setState synchronously inside the effect.
   const requestKey = savedId ? `saved|${savedId}` : `${url}|${language}|${attempt}`;
 
+  // A new transcript invalidates edits and annotations: segment ids are
+  // positional, so stale entries would land on the wrong rows (T3 audit D1).
+  // Called from the async load callbacks, never synchronously in an effect.
+  const resetProductivity = useCallback(() => {
+    reset();
+    setHighlights(new Set());
+    setBookmarks(new Set());
+    setNotes({});
+    setActiveMatch(0);
+  }, [reset]);
+
   useEffect(() => {
     if (!videoId) return;
     let cancelled = false;
@@ -129,10 +141,13 @@ function Workspace() {
       : extractTranscript(url, language || undefined);
     load
       .then((value) => {
-        if (!cancelled) setResult({ key: requestKey, transcript: value, error: "" });
+        if (cancelled) return;
+        resetProductivity();
+        setResult({ key: requestKey, transcript: value, error: "" });
       })
       .catch((cause: unknown) => {
         if (cancelled) return;
+        resetProductivity();
         setResult({
           key: requestKey,
           transcript: null,
@@ -147,7 +162,7 @@ function Workspace() {
     return () => {
       cancelled = true;
     };
-  }, [url, videoId, savedId, language, attempt, requestKey]);
+  }, [url, videoId, savedId, language, attempt, requestKey, resetProductivity]);
 
   const loaded = result !== null && result.key === requestKey ? result : null;
   const transcript = loaded?.transcript ?? null;
@@ -302,21 +317,11 @@ function Workspace() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [sendToggle, seekTo, toggleFullscreen, undo, redo]);
 
-  const safeIndex = matches.length > 0 ? activeMatch % matches.length : 0;
+  const safeIndex = wrapIndex(activeMatch, matches.length);
   // A search match wins while a query is active; otherwise follow playback.
   const activeSegmentId = matches[safeIndex]?.segmentId ?? playbackId;
 
-  const stats = useMemo(() => {
-    if (!current) return null;
-    let words = 0;
-    let characters = 0;
-    for (const segment of current.segments) {
-      characters += segment.text.length;
-      const trimmed = segment.text.trim();
-      if (trimmed) words += trimmed.split(/\s+/).length;
-    }
-    return { segments: current.segments.length, words, characters };
-  }, [current]);
+  const stats = useMemo(() => (current ? transcriptStats(current.segments) : null), [current]);
 
   const handleEdit = useCallback(
     (id: number, text: string) => {
@@ -452,8 +457,8 @@ function Workspace() {
             onQueryChange={handleQueryChange}
             matchCount={matches.length}
             activeMatch={matches.length ? safeIndex + 1 : 0}
-            onPrevious={() => setActiveMatch((value) => value - 1)}
-            onNext={() => setActiveMatch((value) => value + 1)}
+            onPrevious={() => setActiveMatch((value) => wrapIndex(value - 1, matches.length))}
+            onNext={() => setActiveMatch((value) => wrapIndex(value + 1, matches.length))}
             replacement={replacement}
             onReplacementChange={setReplacement}
             onReplaceAll={handleReplaceAll}

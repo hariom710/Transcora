@@ -49,6 +49,23 @@ export function readingMinutes(words: number): number {
   return Math.max(1, Math.round(words / 200));
 }
 
+/** Segment/word/character counts over the edited transcript.
+    Words are whitespace-separated; characters are UTF-16 code units (documented limits). */
+export function transcriptStats(segments: readonly TranscriptSegment[]): {
+  segments: number;
+  words: number;
+  characters: number;
+} {
+  let words = 0;
+  let characters = 0;
+  for (const segment of segments) {
+    characters += segment.text.length;
+    const trimmed = segment.text.trim();
+    if (trimmed) words += trimmed.split(/\s+/).length;
+  }
+  return { segments: segments.length, words, characters };
+}
+
 /** Immutable add/remove toggle for the annotation id sets. */
 export function toggleId(set: ReadonlySet<number>, id: number): Set<number> {
   const next = new Set(set);

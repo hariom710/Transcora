@@ -20,6 +20,12 @@ export function findMatches(text: string, query: string): Array<{ start: number;
   return ranges;
 }
 
+/** Positive-modulo wrap so prev/next navigation cycles instead of going negative. */
+export function wrapIndex(index: number, count: number): number {
+  if (count <= 0) return 0;
+  return ((index % count) + count) % count;
+}
+
 /** Splits `text` into alternating hit/non-hit parts ready for rendering. */
 export function highlightParts(text: string, query: string): HighlightPart[] {
   const ranges = findMatches(text, query);

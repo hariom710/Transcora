@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countMatches, findMatches, highlightParts } from "@/lib/search";
+import { countMatches, findMatches, highlightParts, wrapIndex } from "@/lib/search";
 
 describe("findMatches", () => {
   it("is case insensitive", () => {
@@ -61,5 +61,19 @@ describe("countMatches", () => {
 
   it("returns zero for an empty query", () => {
     expect(countMatches([{ text: "anything" }], "")).toBe(0);
+  });
+});
+
+describe("wrapIndex", () => {
+  it("wraps backwards to the last item and forwards to the first (T3 D2)", () => {
+    expect(wrapIndex(-1, 3)).toBe(2);
+    expect(wrapIndex(3, 3)).toBe(0);
+    expect(wrapIndex(1, 3)).toBe(1);
+    expect(wrapIndex(-4, 3)).toBe(2);
+  });
+
+  it("returns 0 when there is nothing to index", () => {
+    expect(wrapIndex(-1, 0)).toBe(0);
+    expect(wrapIndex(5, 0)).toBe(0);
   });
 });
