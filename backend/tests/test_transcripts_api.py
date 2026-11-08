@@ -76,6 +76,32 @@ def test_rate_limit(monkeypatch: pytest.MonkeyPatch, use_provider) -> None:
     assert third.json()["error"]["code"] == "RATE_LIMITED"
 
 
+def test_rate_limit_skips_cors_preflight(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Preflights are browser overhead — they must not consume the budget.
+
+    A preflight 429 also lacks CORS headers, so the browser surfaces it as a
+    network error instead of the rate-limit message.
+    """
+    monkeypatch.setattr("app.main.rate_limiter", RateLimiter(1, 60))
+
+    real = client.get("/health")
+    assert real.status_code == 200
+
+    preflight = client.options(
+        "/api/v1/transcripts",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert preflight.status_code == 200
+
+    # The budget is still enforced for real traffic.
+    limited = client.post("/api/v1/transcripts", json={"url": VALID_URL})
+    assert limited.status_code == 429
+
+
 def test_cors_rejects_unknown_origin() -> None:
     response = client.post(
         "/api/v1/transcripts",

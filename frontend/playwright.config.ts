@@ -24,7 +24,9 @@ export default defineConfig({
       url: "http://127.0.0.1:8000/health",
       reuseExistingServer: true,
       timeout: 120_000,
-      env: { DATABASE_URL: "sqlite:///./shares.db" },
+      // Four workers share one IP and burst well past the 30/min production
+      // default; the limit itself stays covered by the backend tests.
+      env: { DATABASE_URL: "sqlite:///./shares.db", RATE_LIMIT_REQUESTS: "300" },
     },
   ],
 });

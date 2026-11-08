@@ -32,7 +32,11 @@ def _error(status_code: int, code: str, message: str, headers: dict | None = Non
 @app.middleware("http")
 async def request_guard(request: Request, call_next):
     client = request.client.host if request.client else "unknown"
-    if not rate_limiter.allow(client):
+    # OPTIONS preflights are browser-generated overhead, not user traffic:
+    # counting them doubles the cost of every JSON POST, and a preflight 429
+    # carries no CORS headers so the browser reports a network error instead
+    # of the rate-limit message.
+    if request.method != "OPTIONS" and not rate_limiter.allow(client):
         return _error(
             429,
             "RATE_LIMITED",

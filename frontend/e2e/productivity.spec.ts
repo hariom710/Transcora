@@ -268,9 +268,19 @@ test("switching the transcript language resets edits and annotations (D1)", asyn
   await expect(undo).toBeEnabled();
 
   const language = page.getByLabel("Language");
-  const options = await language.locator("option").count();
-  test.skip(options < 2, "No alternative caption language is listed for this video");
-  const code = (await language.locator("option").nth(1).getAttribute("value")) ?? "";
+  const options = language.locator("option");
+  // The language list loads best-effort after the transcript renders
+  // ("never block the transcript" in transcript/page.tsx), so counting options
+  // the instant segments appear races the fetch — wait for it to settle first.
+  await options
+    .nth(1)
+    .waitFor({ state: "attached", timeout: 15_000 })
+    .catch(() => undefined);
+  test.skip(
+    (await options.count()) < 2,
+    "No alternative caption language is listed for this video",
+  );
+  const code = (await options.nth(1).getAttribute("value")) ?? "";
   expect(code).not.toBe("");
   await language.selectOption(code);
 

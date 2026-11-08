@@ -12,6 +12,7 @@ from youtube_transcript_api import (
     TranscriptsDisabled,
     TranslationLanguageNotAvailable,
     VideoUnavailable,
+    VideoUnplayable,
     YouTubeRequestFailed,
     YouTubeTranscriptApi,
 )
@@ -27,26 +28,31 @@ from app.services.providers.base import LanguageInfo, RawTranscript, Segment
 
 logger = logging.getLogger("transcora.youtube")
 
-# Client contexts tried in order when the default is blocked.
+# Client contexts tried in order when one is refused.
+# ANDROID first: it is the library's own default and the client that actually
+# answers from this network — WEB is refused here and burns the whole
+# 15s request timeout before the fallback lands (observed 504 on /languages).
 # Each uses a different Innertube client so YouTube's bot detection
 # may allow one even when another is blocked. No proxies, cookies,
 # or third-party APIs are used (ADR-004, SECURITY.md).
 _CLIENT_CONTEXTS: tuple[tuple[str, dict], ...] = (
-    ("WEB", {"client": {"clientName": "WEB", "clientVersion": "2.20251201.00.00"}}),
     ("ANDROID", {"client": {"clientName": "ANDROID", "clientVersion": "20.10.38"}}),
+    ("WEB", {"client": {"clientName": "WEB", "clientVersion": "2.20251201.00.00"}}),
     ("IOS", {"client": {"clientName": "IOS", "clientVersion": "20.10.38"}}),
     ("TV", {"client": {"clientName": "TVHTML5", "clientVersion": "7.20250101"}}),
 )
 
 _CLIENT_USER_AGENTS: dict[str, str] = {
-    "WEB": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "ANDROID": "com.google.android.youtube/20.10.38 (Linux; U; Android 13; en_US) gzip",
+    "WEB": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "IOS": "com.google.ios.youtube/20.10.38 (iPhone14,3; U; CPU iOS 17_0 like Mac OS X)",
     "TV": "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.5) AppleWebKit/537.36 (KHTML, like Gecko) Version/6.0 Safari/537.36",
 }
 
-# Errors that indicate IP/client-level blocking and should trigger fallback.
-_BLOCKED_ERRORS = (IpBlocked, RequestBlocked, PoTokenRequired)
+# Errors that indicate the client path is refused and another client may work.
+# VideoUnplayable/YouTubeRequestFailed are how YouTube's bot check often answers
+# the WEB client ("Video unavailable"), not proof the video is dead.
+_BLOCKED_ERRORS = (IpBlocked, RequestBlocked, PoTokenRequired, VideoUnplayable, YouTubeRequestFailed)
 
 # Ordered: the generic base class must come last so specific cases win.
 _ERROR_MAP: tuple[tuple[type[Exception], type[AppError]], ...] = (
@@ -73,13 +79,10 @@ def _map_error(exc: Exception) -> AppError:
 class YouTubeProvider:
     """Adapter over youtube-transcript-api, mapped onto our own error taxonomy."""
 
-    def __init__(self) -> None:
-        self._original_context = _transcripts_module.INNERTUBE_CONTEXT
-
     def _execute_with_client_fallback(self, operation):
         """Execute `operation(api)` trying each client context until one succeeds.
 
-        Tries WEB -> ANDROID -> IOS -> TV in order. Each attempt uses a fresh
+        Tries ANDROID -> WEB -> IOS -> TV in order. Each attempt uses a fresh
         requests.Session with a client-specific User-Agent and Innertube context.
         If all clients are blocked, re-raises the last blocking error so the
         caller's error mapper converts it to UPSTREAM_BLOCKED.
@@ -89,27 +92,30 @@ class YouTubeProvider:
         acceptable for single-worker deployments (documented shortcut).
         """
         last_error: Exception | None = None
-        for client_name, context in _CLIENT_CONTEXTS:
-            _transcripts_module.INNERTUBE_CONTEXT = context
-            session = requests.Session()
-            session.headers.update(
-                {
-                    "Accept-Language": "en-US",
-                    "User-Agent": _CLIENT_USER_AGENTS[client_name],
-                }
-            )
-            api = YouTubeTranscriptApi(http_client=session)
-            try:
-                logger.info("Trying YouTube client %s", client_name)
-                result = operation(api)
-                logger.info("YouTube client %s succeeded", client_name)
-                return result
-            except _BLOCKED_ERRORS as exc:
-                logger.warning("YouTube client %s blocked: %s", client_name, exc)
-                last_error = exc
-                continue
-        # Restore original context before raising
-        _transcripts_module.INNERTUBE_CONTEXT = self._original_context
+        original_context = _transcripts_module.INNERTUBE_CONTEXT
+        try:
+            for client_name, context in _CLIENT_CONTEXTS:
+                _transcripts_module.INNERTUBE_CONTEXT = context
+                session = requests.Session()
+                session.headers.update(
+                    {
+                        "Accept-Language": "en-US",
+                        "User-Agent": _CLIENT_USER_AGENTS[client_name],
+                    }
+                )
+                api = YouTubeTranscriptApi(http_client=session)
+                try:
+                    logger.info("Trying YouTube client %s", client_name)
+                    result = operation(api)
+                    logger.info("YouTube client %s succeeded", client_name)
+                    return result
+                except _BLOCKED_ERRORS as exc:
+                    logger.warning("YouTube client %s blocked: %s", client_name, exc)
+                    last_error = exc
+                    continue
+        finally:
+            # Always restore the module-level context, success or failure.
+            _transcripts_module.INNERTUBE_CONTEXT = original_context
         if last_error is not None:
             raise last_error
         raise UpstreamBlockedError()  # Should not reach here
